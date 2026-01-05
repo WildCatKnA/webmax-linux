@@ -1,4 +1,4 @@
-# WEBMAX Desktop for Linux/Windows (unofficial)
+# MAX Desktop for Linux/Windows (unofficial)
 MAX Linux client built with Electron (used Electron-21.0.1). Here is an unofficial build (because as an official MAX it is written poorly). 
 It is fork from WhatsApp-Desktop-Linux that's written by Alberto Mimbrero [releases page](https://github.com/mimbrero/whatsapp-desktop-linux).
 
