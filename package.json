@@ -1,5 +1,6 @@
 {
   "name": "webmax",
+  "productName": "webmax",
   "version": "1.0.1-1",
   "icon": "./assets/mainapp.png",
   "description": "WebMax for Linux (unofficial)",
