@@ -12,9 +12,10 @@ This wrapper is not verified by, affiliated with, or supported by MAX Inc.
 ## :construction: Development
 PR and forks are welcome!
 
-1. Unpack the sources (or clone the repo)
+1. Clone the repo
 ```bash
-cd webmax-desktop-linux
+git clone https://github.com/WildCatKnA/webmax-linux.git
+cd webmax-linux
 ```
 
 2. Install dependencies
