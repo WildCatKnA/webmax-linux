@@ -1,4 +1,4 @@
-import { app, desktopCapturer, BrowserWindow, ipcMain, shell } from "electron";
+import { app, desktopCapturer, BrowserWindow, nativeImage, ipcMain, shell } from "electron";
 import ChromeVersionFix from "./fix/chrome-version-fix";
 import Electron21Fix from "./fix/electron-21-fix";
 import HotkeyModule from "./module/hotkey-module";
@@ -38,6 +38,9 @@ const path = require('path');
 const fs = require('fs');
 const downloadsStore = new Store();
 
+let workerWindow: BrowserWindow | null = null;
+
+//let workerWindow = null; // Скрытое окно-рендерер
 //const USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.9999.0 Safari/537.36";
 
 function getUnusedPath(filePath) {
@@ -66,11 +69,11 @@ export default class MainApp {
 	constructor() {
 		this.window = new BrowserWindow({
 			title: "MAX",
-			icon: path.join("./assets/", process.platform === 'win32' ? "mainapp.ico":"mainapp.png"),
+			icon: path.join("./assets/", process.platform === 'win32' ? "app.ico":"mainapp.png"),
 			width: 1200,
 			height: 800,
-			minWidth: 600,
-			minHeight: 400,
+			minWidth: 800,
+			minHeight: 600,
 			backgroundColor: "#25262d",
 //			useContentSize: true,//false
 			show: false,
@@ -97,6 +100,12 @@ export default class MainApp {
 			new ChromeVersionFix(this)
 		]);
 
+		this.window.on("show", () => {
+			setTimeout(() => {
+				this.window.focus();
+			}, 200);
+		});
+
 		///////////////////////////////////////////////
 		// костыль, для скачивания видосика для костыля, который не отправит ссылку в браузер
 		this.window.webContents.session.on('will-download', (event, item, webContents) => {
@@ -122,10 +131,6 @@ export default class MainApp {
 		});
 
 		///////////////////////////////////////////////
-		this.window.on("ready-to-show", () => {
-			this.window.show();
-		});
-		///////////////////////////////////////////////
 	}
 
 	public init() {
@@ -142,6 +147,32 @@ export default class MainApp {
 		this.moduleManager.beforeLoad();
 		this.moduleManager.onLoad();
 		app.setAsDefaultProtocolClient("max");
+
+		this.window.show();
+		/////////
+/*		workerWindow = new BrowserWindow({
+			show: false,
+			webPreferences: {
+				preload: path.join(__dirname, 'preload.js'),
+				backgroundThrottling: false
+			}
+		});
+		workerWindow.loadFile('worker.html');
+
+		// Когда рендерер готов, отправляем ему SVG
+		workerWindow.webContents.once('did-finish-load', () => {
+			function renderSvgToTray(svgString) {
+			    if (workerWindow) {
+	        		workerWindow.webContents.send('render-svg', svgString);
+	    		}
+			}
+			const mySvg = `<svg width="32" height="32" xmlns="www.w3.org">
+<circle cx="16" cy="16" r="14" fill="red" />
+<text x="16" y="21" font-family="Arial" font-size="14" fill="white" text-anchor="middle">SVG</text>
+</svg>`;
+			renderSvgToTray(mySvg);
+		});
+		/////////*/
 
 	}
 
@@ -195,6 +226,12 @@ export default class MainApp {
 			if (this.window.isMinimized()) this.window.restore();
 			this.window.focus();		
 		});
+		///////////////////////////////////////////////
+//		ipcMain.on('png-finished', (event, dataUrl) => {
+//        	const icon = nativeImage.createFromDataURL(dataUrl);
+//!			this.tray.setImage(icon);
+//			console.log('SVG успешно превращен в PNG и установлен в трей');
+//		});
 		///////////////////////////////////////////////
 
 		// спиздил из официальной махи и подогнал под свои нужды... но, на мой взгляд, всё можно сделать проще

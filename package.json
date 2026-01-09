@@ -1,8 +1,8 @@
 {
   "name": "webmax",
   "productName": "webmax",
-  "version": "1.0.1-1",
-  "icon": "./assets/mainapp.png",
+  "version": "1.0.2-1",
+  "icon": "./assets/app.png",
   "description": "WebMax for Linux (unofficial)",
   "main": "dist/index.js",
   "scripts": {
@@ -26,11 +26,17 @@
   {
     "win": {
       "appId": "WebMax Desktop",
-      "icon": "./assets/mainapp.ico"
+      "icon": "./assets/app.ico"
+    },
+    "mac": {
+      "appId": "WebMax Desktop",
+      "icon": "./assets/app.icns",
+      "category": "Network"
     },
     "linux": {
       "appId": "WebMax Desktop",
-      "icon": "./assets/mainapp.png"
+      "icon": "./assets/app.png",
+      "category": "Network"
     },
     "directories": {
       "output": "./build"

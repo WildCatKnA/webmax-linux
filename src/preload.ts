@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
+const api = {};
 
 function overrideNotification() {
     window.Notification = class extends Notification {
@@ -42,17 +43,23 @@ if (process.contextIsolated) {
 				ipcRenderer.invoke("notify-click");
 			}
 		});
-		contextBridge.exposeInMainWorld('api', {});
+		contextBridge.exposeInMainWorld('api', api);
 	} catch (error) {
 		console.error(error);
 	}
 } else {
-
+//	window.electron = electronAPI;
+//	window.api = api;
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
   onDownloadComplete: (callback) => ipcRenderer.on('dl-complete', (event, data) => callback(data))
 });
+
+//contextBridge.exposeInMainWorld('renderAPI', {
+//	onRenderRequest: (callback) => ipcRenderer.on('render-svg', (event, svg) => callback(svg)),
+//	sendResult: (dataUrl) => ipcRenderer.send('png-finished', dataUrl)
+//});
 
 overrideNotification();
 handleChromeVersionBug();
