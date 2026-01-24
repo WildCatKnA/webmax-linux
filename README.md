@@ -43,10 +43,4 @@ npm start # compile and run
 npm run build # compile and build
 ```
 
-4. Also you may build it as Windows (it's works with Window-7 if you need) app
-
-```bash
-npx electron-builder --win # compile and build for Windows
-```
-
 5. Have fun =)
