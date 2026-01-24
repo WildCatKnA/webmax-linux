@@ -1,5 +1,5 @@
 import { app, BrowserWindow, Menu, MenuItem, Tray, Notification, ipcMain } from "electron";
-import { getUnreadMessages, createBadgeIcon } from "../util";
+import { getUnreadMessages } from "../util";
 
 const { dialog, nativeImage } = require('electron');
 
@@ -7,13 +7,13 @@ import path from "path";
 import MainApp from "../mainapp";
 import Module from "./module";
 
-const ICON        = path.join("./assets/", "mainapp.png");
-const ICON_UNREAD = path.join("./assets/", "mainapp-unread.png");
-const OVERLAY     = path.join("./assets/", "overlay.png");
-const ICON_ABOUT  = path.join("./assets/", "app.png");
-const MENU_HIDE   = path.join("./assets/", "hide.png");
-const MENU_ABOUT  = path.join("./assets/", "about.png");
-const MENU_QUIT   = path.join("./assets/", "quit.png");
+const ICON        = path.join(app.getAppPath(), "assets/", process.platform === 'darwin'? "mainapp_16.png" : "mainapp.png");
+const ICON_UNREAD = path.join(app.getAppPath(), "assets/", process.platform === 'darwin'? "mainapp-unread_16.png" : "mainapp-unread.png");
+const OVERLAY     = path.join(app.getAppPath(), "assets/", "overlay.png");
+const ICON_ABOUT  = path.join(app.getAppPath(), "assets/", /*process.platform === 'win32'? "applogo.ico" :*/ "applogo.png");
+const MENU_HIDE   = path.join(app.getAppPath(), "assets/", "hide.png");
+const MENU_ABOUT  = path.join(app.getAppPath(), "assets/", "about.png");
+const MENU_QUIT   = path.join(app.getAppPath(), "assets/", "quit.png");
 
 let unread = 0;
 
@@ -27,18 +27,9 @@ export default class TrayModule extends Module {
 	) {
 		super();
 		this.tray = new Tray(ICON);
-		this.createMenu();
-		this.tray.setToolTip("MAX");
-	}
+		this.tray.setTitle(' ');
+		this.tray.setContextMenu(Menu.buildFromTemplate([]));
 
-	public override onLoad() {
-//		this.createMenu(); // переместил в constructor
-		this.registerListeners();
-	}
-
-
-	private createMenu() {
-//	const i_hide = nativeImage.createFromPath(MENU_HIDE);
 		const menu = Menu.buildFromTemplate([
 			{
 				label: "Показать/Cкрыть",
@@ -46,30 +37,17 @@ export default class TrayModule extends Module {
 				click: () => this.onClickShowHide()
 			},
 
-			{
-				type: 'separator'
-			},
+			{ type: 'separator' },
 
 			{
 				label: "О программе",
 				icon: MENU_ABOUT,
 				click: () => {
-					///////////////////
-					let ver = app.getVersion();
-					const about = dialog.showMessageBox(this.window, {
-						icon: ICON_ABOUT,
-						buttons: ['OK'],
-						title: 'О программе...',
-						message: 'WebMax v.'+ver + '/ Electron v.' + process.versions.electron,
-						detail:  'Неофициальное приложение <MAX>\nдля Linux x64 или Windows-7 x64\n\nCopyright (C) 2026, WildCat/KnA',
-					});
-					///////////////////
+					this.showAboutDlg()
 				}
 			},
 
-			{
-				type: 'separator'
-			},
+			{ type: 'separator' },
 
 			{
 				label: "Выход",
@@ -78,13 +56,24 @@ export default class TrayModule extends Module {
 			}
 		]);
 
+		this.tray.setToolTip("MAX");
 		this.tray.setContextMenu(menu);
-
-		this.tray.on("click", (event, bounds) => {
-			this.onClickShowHide();
+		if (process.platform === 'linux') this.tray.setTitle('');
+		this.tray.on("click", (/*event, bounds*/) => {
+			if (process.platform === 'win32') { this.onClickShowHide(); }
+			else { this.tray.popUpContextMenu(menu); }
 		});
-
+		this.tray.on('right-click', () => {
+//			this.tray.setContextMenu(menu);
+			this.tray.popUpContextMenu(menu);
+		});	
 	}
+
+	public override onLoad() {
+		this.registerListeners();
+	}
+
+////////////////////////////////////////////////////////////////////////////////
 
 	private onClickShowHide() {
 		if (!this.window.isVisible()) {
@@ -103,6 +92,28 @@ export default class TrayModule extends Module {
 		}
 	}
 
+	private showAboutDlg() {
+		let ver = app.getVersion();
+		const about = dialog.showMessageBox(this.window, {
+			icon: ICON_ABOUT,
+			buttons: ['OK'],
+			title:  'О программе...',
+			message:'WebMax v.'+ver + '/ Electron v.' + process.versions.electron
+//			+ (process.platform === 'linux'? '\nXDG_CURRENT_DESKTOP: ' + process.env.XDG_CURRENT_DESKTOP: '')
+			,
+			detail: 'Неофициальное приложение MAX\n'+
+					'для Linux x64, Windows-7 x64\n'+
+					'или Mac OS 10.15 и выше.\n\n'+
+					'Copyright © 2023, Alberto Mimbrero\n'+
+					'Copyright © 2026, WildCat/KnA',
+			checkboxLabel: 'Блокировать воспроизведение видео (перезапустите приложение)',
+			checkboxChecked: this.MainApp.blockAudVid
+		}).then(result => {
+			this.MainApp.blockAudVid = result.checkboxChecked;
+		});
+	}
+////////////////////////////////////////////////////////////////////////////////
+
 	private registerListeners() {
 		this.window.on("close", event => {
 			if (this.MainApp.quitting) return;
@@ -117,21 +128,12 @@ export default class TrayModule extends Module {
 			unread = getUnreadMessages(title);
 			this.window.setTitle(title);
 
-			if (unread != 0) {
-				//imm = new NativeImage();
-
-/*				try{
-					createBadgeIcon(unread, this.tray);
-				} catch (error) {
-					console.error(error);
-//					this.tray.setImage(ICON_UNREAD);
-				}//*/
-
-//				imm = nativeImage.createFromDataURL(createBadgeIcon(unread));// nativeImage.createFromDataURL(createBadgeIcon(unread));
+			if (unread > 0) {
 				this.tray.setToolTip(title + " - MAX");
-
+				this.tray.setImage(ICON_UNREAD);
 				if (process.platform === 'win32') {
-					this.window.setOverlayIcon(nativeImage.createFromPath(OVERLAY), ''+unread);
+					this.window.setOverlayIcon(nativeImage.createFromPath(OVERLAY), title);
+
 				}
 
 				if (process.platform === 'darwin') {
@@ -144,8 +146,13 @@ export default class TrayModule extends Module {
 				if (process.platform === 'darwin') {
 					app.dock.setBadge('');
 				}
+
+				if (process.platform === 'win32') {
+					this.window.setOverlayIcon(null, '');
+				}
+
 			}
-			this.tray.setImage(unread == 0 ? ICON : ICON_UNREAD);
+//			this.tray.setImage(unread > 0 ? ICON_UNREAD : ICON);
 
 			/* //////////////
 			// уведомление о кол-ве непочитанных
@@ -170,10 +177,6 @@ export default class TrayModule extends Module {
 			}
 			////////////// */
 		});
-//		ipcMain.on('png-finished', (event, dataUrl) => {
-//			const icon = nativeImage.createFromDataURL(dataUrl);
-//			this.tray.setImage(icon);
-//			console.log('SVG успешно превращен в PNG и установлен в трей');
-//    });
+
 	}
 };

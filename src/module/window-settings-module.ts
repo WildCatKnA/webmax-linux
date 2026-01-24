@@ -29,6 +29,7 @@ export default class WindowSettingsModule extends Module {
 		if (settings.get("maximized", false)) {
 			this.window.maximize();
 		}
+		this.MainApp.blockAudVid = settings.get("block-video", false);
 	}
 
 	public override onQuit() {
@@ -37,5 +38,6 @@ export default class WindowSettingsModule extends Module {
 		if (!this.window.isMaximized()) {
 			settings.set("bounds", this.window.getNormalBounds());
 		}
+		settings.set("block-video", this.MainApp.blockAudVid);
 	}
 };

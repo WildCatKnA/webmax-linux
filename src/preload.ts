@@ -1,5 +1,9 @@
 import { contextBridge, ipcRenderer } from "electron";
 const api = {};
+const { dialog } = require('electron');
+
+////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////
 
 function overrideNotification() {
     window.Notification = class extends Notification {
@@ -56,11 +60,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onDownloadComplete: (callback) => ipcRenderer.on('dl-complete', (event, data) => callback(data))
 });
 
-//contextBridge.exposeInMainWorld('renderAPI', {
-//	onRenderRequest: (callback) => ipcRenderer.on('render-svg', (event, svg) => callback(svg)),
-//	sendResult: (dataUrl) => ipcRenderer.send('png-finished', dataUrl)
-//});
 
 overrideNotification();
 handleChromeVersionBug();
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+
 

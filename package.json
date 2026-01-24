@@ -1,52 +1,50 @@
 {
-  "name": "webmax",
-  "productName": "webmax",
-  "version": "1.0.2-1",
-  "icon": "./assets/app.png",
-  "description": "WebMax for Linux (unofficial)",
-  "main": "dist/index.js",
-  "scripts": {
-    "dist": "tsc",
-    "watch": "tsc -w",
-    "lint": "eslint -c .eslintrc --ext .ts ./src",
-    "start": "npm run dist && electron .",
-    "build": "npm run dist && electron-builder"
-  },
-  "author": "wildcat",
-  "license": "MIT",
-  "dependencies": {
-    "electron-store": "^8.1.0"
-  },
-  "devDependencies": {
-    "electron": "^21.0.1",
-    "electron-builder": "^23.3.3",
-    "typescript": "^4.8.4"
-  },
-  "build":
-  {
-    "win": {
-      "appId": "WebMax Desktop",
-      "icon": "./assets/app.ico"
-    },
-    "mac": {
-      "appId": "WebMax Desktop",
-      "icon": "./assets/app.icns",
-      "category": "Network"
-    },
-    "linux": {
-      "appId": "WebMax Desktop",
-      "icon": "./assets/app.png",
-      "category": "Network"
-    },
-    "directories": {
-      "output": "./build"
-    },
-    "files": [
-      "dist",
-      "package.json"
-    ],
-    "extraFiles": [
-      "assets"
-    ]
-  }
+	"name": "webmax",
+	"productName": "webmax",
+	"version": "1.0.2-1",
+	"icon": "./assets/app.png",
+	"description": "WebMax for Linux (unofficial)",
+	"main": "dist/index.js",
+	"scripts": {
+		"dist": "tsc",
+		"watch": "tsc -w",
+		"lint": "eslint -c .eslintrc --ext .ts ./src",
+		"start": "npm run dist && electron .",
+		"build": "npm run dist && electron-builder"
+	},
+	"author": "wildcat",
+	"license": "MIT",
+	"dependencies": {
+		"electron-store": "^8.1.0"
+	},
+	"devDependencies": {
+		"electron": "^21.0.1",
+		"electron-builder": "^23.3.3",
+		"typescript": "^4.8.4"
+	},
+	"build":{
+		"asar": true,
+		"win": {
+			"appId": "WebMax Desktop",
+			"icon": "./assets/app.ico"
+		},
+		"mac": {
+			"appId": "WebMax Desktop",
+			"icon": "./assets/app.icns",
+			"category": "Network"
+		},
+		"linux": {
+			"appId": "WebMax Desktop",
+			"icon": "./assets/app.png",
+			"category": "Network"
+		},
+		"directories": {
+			"output": "./build"
+		},
+		"files": [
+			"./assets/**/*",
+			"./dist",
+			"./package.json"
+		]
+	}
 }

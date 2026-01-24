@@ -5,7 +5,7 @@ import HotkeyModule from "./module/hotkey-module";
 import ModuleManager from "./module/module-manager";
 import TrayModule from "./module/tray-module";
 import WindowSettingsModule from "./module/window-settings-module";
-
+import { getUnusedPath } from "./util";
 
 import { existsSync, createWriteStream, unlink } from "fs";
 import Store from "electron-store";
@@ -43,33 +43,17 @@ let workerWindow: BrowserWindow | null = null;
 //let workerWindow = null; // Скрытое окно-рендерер
 //const USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.9999.0 Safari/537.36";
 
-function getUnusedPath(filePath) {
-	// такого файла нет, возвращаем исходный путь
-	if (!fs.existsSync(filePath)) return filePath;
-
-	const dir = path.dirname(filePath);
-	const ext = path.extname(filePath);
-	const name = path.basename(filePath, ext);
-	let counter = 1;
-
-	// найдем свободное имя: name (1).ext, name (2).ext ...
-	while (fs.existsSync(path.join(dir, `${name} (${counter})${ext}`))) {
-		counter++;
-	}
-
-	return path.join(dir, `${name} (${counter})${ext}`);
-}
-
 export default class MainApp {
 	
 	private readonly window: BrowserWindow;
 	private readonly moduleManager: ModuleManager;
 	public quitting = false;
+	public blockAudVid = false;
 
 	constructor() {
 		this.window = new BrowserWindow({
 			title: "MAX",
-			icon: path.join("./assets/", process.platform === 'win32' ? "app.ico":"mainapp.png"),
+			icon: path.join(app.getAppPath(), "assets/", process.platform === 'win32' ? "app.ico":"mainapp.png"),
 			width: 1200,
 			height: 800,
 			minWidth: 800,
@@ -88,8 +72,8 @@ export default class MainApp {
 			}
 		});
 
-		// костыль в видеCSS-кода для  НОРМАЛЬНОГО выравнивания содержимого по высоте окна от криворучек, выдумавших маху
-		// (видимо, electron-21 и ниже криво обрабатывают сие безарбузие,  рисуя скроллбары поверх махо-интерфейсовых
+		// костыль в виде CSS-кода для  НОРМАЛЬНОГО выравнивания содержимого по высоте окна от криворучек, выдумавших маху
+		// (видимо, electron-21 и ниже криво обрабатывают сие безарбузие,  рисуя скроллбары поверх махо-интерфейсовых)
 		this.window.webContents.insertCSS('.aside, .openedChat { height: 100vh; display: flex; flex-direction: column; }  ');
 
 		this.moduleManager = new ModuleManager([
@@ -129,9 +113,8 @@ export default class MainApp {
 				item.cancel(); // Если нажали "Отмена" в диалоге
 			}
 		});
-
-		///////////////////////////////////////////////
 	}
+	
 
 	public init() {
 		this.makeLinksOpenInBrowser();
@@ -146,7 +129,22 @@ export default class MainApp {
 
 		this.moduleManager.beforeLoad();
 		this.moduleManager.onLoad();
+		///////////////////////////////////////////////
+		/// полная блокировка  видеоплеера в MAX
+		//	слишком радикально, но оно сработало
+		if (this.blockAudVid) {
+			this.window.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+				callback({
+					responseHeaders: {
+						...details.responseHeaders,
+						'Content-Security-Policy': ["media-src 'none'"] // Запрещает ВСЁ медиа
+					}
+				});
+			});
+		} //*/
+		///////////////////////////////////////////////
 		app.setAsDefaultProtocolClient("max");
+		app.commandLine.appendSwitch('autoplay-policy', 'user-gesture-required');
 
 		this.window.show();
 		/////////
@@ -186,6 +184,9 @@ export default class MainApp {
 		app.quit();
 	}
 	
+
+	// если контент - видос или изображение, то попытаемся сохранить,
+	// в противном случае: если протокол https - открываем ссылку в браузере
 	private makeLinksOpenInBrowser() {
 
 		this.window.webContents.setWindowOpenHandler((details) => {
@@ -295,5 +296,30 @@ export default class MainApp {
 			});
 		});
 		///////////////////////////////////////////////
+/*//
+ipcMain.on('open-viewer', (event, data) => {
+    let viewer = new BrowserWindow({
+        fullscreen: true,
+        backgroundColor: '#000000',
+        frame: false
+    });
+
+    // Генерируем HTML прямо в коде
+    const html = `
+        <html>
+        <body style="margin:0; background:black; display:flex; justify-content:center; align-items:center; height:100vh;" onclick="window.close()">
+            <img src="${data.url}" style="max-width:100%; max-height:100%;">
+            <script>
+                window.onkeydown = (e) => { if(e.key === 'Escape') window.close(); }
+            </script>
+        </body>
+        </html>
+    `;
+
+    viewer.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+});
+//*/
+		///////////////////////////////////////////////
+
 	}
 };
