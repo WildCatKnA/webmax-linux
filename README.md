@@ -39,8 +39,15 @@ npm install
 
 3. Run or build
 ```bash
-npm start # compile and run
-npm run build # compile and build
+npm start      # compile and run
+npm run build  # compile and build
+```
+
+4. Also you may use commands (for example if using cross build on your host)
+```bash
+npm run linux    # compile and build for Linux
+npm run windows  # compile and build for Windows
+npm run mac      # compile and build for MacOS
 ```
 
 5. Have fun =)
