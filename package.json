@@ -28,7 +28,7 @@
 		"asar": true,
 		"win": {
 			"appId": "WebMax Desktop",
-			"icon": "./assets/app.ico",
+			"icon": "./icon.ico",
 			"target": ["zip"]
 		},
 		"mac": {
