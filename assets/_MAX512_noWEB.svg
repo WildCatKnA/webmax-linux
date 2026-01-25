@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="512px" height="512px" viewBox="0 0 512 512" version="1.1">
+
+<defs>
+ <linearGradient id="Gradient" gradientUnits="userSpaceOnUse" x1="0%" y1="50%" x2="50%" y2="100%" >
+   <stop offset="0%" stop-color="#8640ca" /> 
+   <stop offset="100%" stop-color="#2eb0ec" />
+ </linearGradient>
+
+ <mask id="Mask">
+   <circle cx="50%" cy="50%" r="48.5%"  fill="#ffffff" />
+   <path style="stroke:fill;fill-rule:evenodd;fill:#ffffff;fill-opacity:1;" stroke="white" stroke-width="20%" d="M 260.203125 449.703125 C 221.800781 449.703125 203.953125 444.097656 172.933594 421.671875 C 153.308594 446.902344 91.171875 466.617188 88.464844 432.886719 C 88.464844 407.5625 82.855469 386.164062 76.503906 362.804688 C 68.933594 334.027344 60.335938 301.976562 60.335938 255.539062 C 60.335938 144.625 151.347656 61.183594 259.175781 61.183594 C 367.097656 61.183594 451.660156 148.738281 451.660156 256.566406 C 452.023438 362.726562 366.363281 449.136719 260.203125 449.703125 Z M 261.792969 157.050781 C 209.28125 154.34375 168.351562 190.691406 159.289062 247.6875 C 151.816406 294.875 165.082031 352.339844 176.390625 355.332031 C 181.808594 356.640625 195.449219 345.613281 203.953125 337.109375 C 218.015625 346.824219 234.386719 352.65625 251.421875 354.023438 C 305.832031 356.640625 352.324219 315.214844 355.980469 260.863281 C 358.105469 206.394531 316.210938 160.261719 261.792969 157.144531 Z M 261.792969 157.050781 "/>
+ </mask>
+
+
+ <radialGradient id="tc" cx="50%" cy="0%" r="50%">
+    <stop offset="0%" stop-color="#322bc6" />
+    <stop offset="50%" stop-color="#322bc620" />
+ </radialGradient>
+
+ <radialGradient id="tl" cx="0%" cy="0%" r="50%">
+    <stop offset="0%" stop-color="#1e3ddc" />
+    <stop offset="70%" stop-color="#1e3ddc20" />
+ </radialGradient>
+
+ <radialGradient id="tl1" cx="25%" cy="25%" r="50%">
+    <stop offset="0%" stop-color="#2444f7" />
+    <stop offset="70%" stop-color="#2444f700" />
+ </radialGradient>
+
+ <radialGradient id="tr" cx="100%" cy="0%" r="50%">
+    <stop offset="0%" stop-color="#864ae5" />
+    <stop offset="70%" stop-color="#864ae550" />
+ </radialGradient>
+
+ <radialGradient id="cr" cx="100%" cy="25%" r="100%">
+    <stop offset="0%" stop-color="#ff45e5" />
+    <stop offset="70%" stop-color="#8245e500" />
+ </radialGradient>
+
+ <radialGradient id="bl" cx="20%" cy="80%" r="150%">
+    <stop offset="0%" stop-color="#1395cd" />
+    <stop offset="70%" stop-color="1395cd" />
+ </radialGradient>
+
+ <radialGradient id="br" cx="100%" cy="100%" r="100%">
+    <stop offset="0%" stop-color="#ab5ddc" />
+    <stop offset="70%" stop-color="#ab5ddc00" />
+ </radialGradient>
+
+ <radialGradient id="cc" cx="100%" cy="50%" r="100%">
+    <stop offset="0%" stop-color="#4049e920" />
+    <stop offset="50%" stop-color="#4049e900" />
+ </radialGradient>
+
+</defs>
+
+<g id="back" mask="url(#Mask)">
+ <rect width="100%" height="100%" fill="url(#tl)" />
+ <rect width="100%" height="100%" fill="url(#tc)" />
+ <rect width="100%" height="100%" fill="url(#tr)" />
+ <rect width="100%" height="100%" fill="url(#bl)" />
+ <rect width="100%" height="100%" fill="url(#br)" />
+ <rect width="100%" height="100%" fill="url(#cr)" />
+ <rect width="100%" height="100%" fill="url(#cc)" />
+ <rect width="100%" height="100%" fill="url(#tl1)"/>
+</g>
+
+<g id="s1">
+<path style=" stroke:none;fill:#ffffff;fill-opacity:1;" d="M 260.203125 449.703125 C 221.800781 449.703125 203.953125 444.097656 172.933594 421.671875 C 153.308594 446.902344 91.171875 466.617188 88.464844 432.886719 C 88.464844 407.5625 82.855469 386.164062 76.503906 362.804688 C 68.933594 334.027344 60.335938 301.976562 60.335938 255.539062 C 60.335938 144.625 151.347656 61.183594 259.175781 61.183594 C 367.097656 61.183594 451.660156 148.738281 451.660156 256.566406 C 452.023438 362.726562 366.363281 449.136719 260.203125 449.703125 Z M 261.792969 157.050781 C 209.28125 154.34375 168.351562 190.691406 159.289062 247.6875 C 151.816406 294.875 165.082031 352.339844 176.390625 355.332031 C 181.808594 356.640625 195.449219 345.613281 203.953125 337.109375 C 218.015625 346.824219 234.386719 352.65625 251.421875 354.023438 C 305.832031 356.640625 352.324219 315.214844 355.980469 260.863281 C 358.105469 206.394531 316.210938 160.261719 261.792969 157.144531 Z M 261.792969 157.050781 "/>
+</g>
+
+</svg>

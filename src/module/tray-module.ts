@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, MenuItem, Tray, Notification, ipcMain } from "electron";
+import { app, BrowserWindow, Menu, MenuItem, Tray, Notification, /*ipcMain*/ } from "electron";
 import { getUnreadMessages } from "../util";
 
 const { dialog, nativeImage } = require('electron');
@@ -14,6 +14,7 @@ const ICON_ABOUT  = path.join(app.getAppPath(), "assets/", /*process.platform ==
 const MENU_HIDE   = path.join(app.getAppPath(), "assets/", "hide.png");
 const MENU_ABOUT  = path.join(app.getAppPath(), "assets/", "about.png");
 const MENU_QUIT   = path.join(app.getAppPath(), "assets/", "quit.png");
+const ttMAX		  = "MAX";
 
 let unread = 0;
 
@@ -27,8 +28,7 @@ export default class TrayModule extends Module {
 	) {
 		super();
 		this.tray = new Tray(ICON);
-		this.tray.setTitle(' ');
-		this.tray.setContextMenu(Menu.buildFromTemplate([]));
+//		this.tray.setContextMenu(Menu.buildFromTemplate([]));
 
 		const menu = Menu.buildFromTemplate([
 			{
@@ -54,14 +54,34 @@ export default class TrayModule extends Module {
 				icon: MENU_QUIT,
 				click: () => this.MainApp.quit()
 			}
+			////////////////
+			/*,{ type: 'separator' },
+
+			{
+				label: "ToolTip",
+				click: () => {
+					dialog.showMessageBox( { message: this.tray.gettoolTip() });
+				}
+			} //*/
+			////////////////
 		]);
 
-		this.tray.setToolTip("MAX");
 		this.tray.setContextMenu(menu);
+		this.tray.setToolTip(ttMAX);
+		this.tray.setTitle(' ');
 		if (process.platform === 'linux') this.tray.setTitle('');
 		this.tray.on("click", (/*event, bounds*/) => {
-			if (process.platform === 'win32') { this.onClickShowHide(); }
-			else { this.tray.popUpContextMenu(menu); }
+			if (process.platform !== 'darwin') { this.onClickShowHide(); }
+//			this.onClickShowHide();
+			/*if (process.platform === 'win32') { this.onClickShowHide(); }
+			else {
+//				event.preventDefault();
+//				return { action: "deny" };
+				if (!this.window.isVisible()) {
+					this.window.show();
+				}
+//				else { this.tray.popUpContextMenu(menu); }
+			}//*/
 		});
 		this.tray.on('right-click', () => {
 //			this.tray.setContextMenu(menu);
@@ -156,7 +176,10 @@ export default class TrayModule extends Module {
 
 			/* //////////////
 			// уведомление о кол-ве непочитанных
-			// пока убрал, чтобы не мешалось, кому надо - раскомментируйте
+			// пока убрал, чтобы не мешалось...
+			// кому надо - раскомментируйте,
+			// только не забудьте раскомметнтировать
+			// Notification в первой строке
 			
 			if (unread !=0 && Notification.isSupported()) {
 				const notify = new Notification({

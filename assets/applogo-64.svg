@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="64px" height="64px" viewBox="0 0 64 64" version="1.1">
+
+<defs>
+ <linearGradient id="Gradient" gradientUnits="userSpaceOnUse" x1="0%" y1="50%" x2="50%" y2="100%" >
+   <stop offset="0%" stop-color="#8640ca" /> 
+   <stop offset="100%" stop-color="#2eb0ec" />
+ </linearGradient>
+
+<mask id="deleteTextMask">
+   <rect width="100%" height="100%"  fill="#ffffff" />
+   <text x="50%" y="62%" text-anchor="middle" font-family="sans-serif" font-size="27.4" font-weight="bold" fill="#000000" stroke="#000000" stroke-width="3" style="fill-rule:evenodd; paint-order: stroke fill;">web</text>
+ </mask>
+
+ <mask id="Mask">
+   <rect width="100%" height="100%"  fill="#ffffff" stroke="#9000b0" stroke-width="6%"/>
+   <path style="stroke:fill;fill-rule:evenodd;fill:#ffffff;fill-opacity:1;" stroke="white" stroke-width="3" d="M 32.527344 56.214844 C 27.726562 56.214844 25.496094 55.511719 21.617188 52.710938 C 19.164062 55.863281 11.398438 58.328125 11.058594 54.109375 C 11.058594 50.945312 10.355469 48.269531 9.5625 45.351562 C 8.617188 41.753906 7.542969 37.746094 7.542969 31.941406 C 7.542969 18.078125 18.917969 7.648438 32.398438 7.648438 C 45.886719 7.648438 56.457031 18.59375 56.457031 32.070312 C 56.503906 45.339844 45.796875 56.140625 32.527344 56.214844 Z M 32.722656 19.632812 C 26.160156 19.292969 21.042969 23.835938 19.910156 30.960938 C 18.976562 36.859375 20.636719 44.042969 22.046875 44.417969 C 22.726562 44.578125 24.429688 43.203125 25.496094 42.140625 C 27.25 43.351562 29.296875 44.082031 31.425781 44.253906 C 38.230469 44.578125 44.039062 39.402344 44.496094 32.609375 C 44.761719 25.800781 39.527344 20.03125 32.722656 19.644531 Z M 32.722656 19.632812 "/>
+ </mask>
+
+
+ <radialGradient id="tc" cx="50%" cy="0%" r="50%">
+    <stop offset="0%" stop-color="#322bc6" />
+    <stop offset="50%" stop-color="#322bc620" />
+ </radialGradient>
+
+ <radialGradient id="tl" cx="0%" cy="0%" r="50%">
+    <stop offset="0%" stop-color="#1e3ddc" />
+    <stop offset="70%" stop-color="#1e3ddc20" />
+ </radialGradient>
+
+ <radialGradient id="tl1" cx="25%" cy="25%" r="50%">
+    <stop offset="0%" stop-color="#2444f7" />
+    <stop offset="70%" stop-color="#2444f700" />
+ </radialGradient>
+
+ <radialGradient id="tr" cx="100%" cy="0%" r="50%">
+    <stop offset="0%" stop-color="#864ae5" />
+    <stop offset="70%" stop-color="#864ae550" />
+ </radialGradient>
+
+ <radialGradient id="cr" cx="100%" cy="25%" r="100%">
+    <stop offset="0%" stop-color="#ff45e5" />
+    <stop offset="70%" stop-color="#8245e500" />
+ </radialGradient>
+
+ <radialGradient id="bl" cx="20%" cy="80%" r="150%">
+    <stop offset="0%" stop-color="#1395cd" />
+    <stop offset="70%" stop-color="1395cd" />
+ </radialGradient>
+
+ <radialGradient id="br" cx="100%" cy="100%" r="100%">
+    <stop offset="0%" stop-color="#ab5ddc" />
+    <stop offset="70%" stop-color="#ab5ddc00" />
+ </radialGradient>
+
+ <radialGradient id="cc" cx="100%" cy="50%" r="100%">
+    <stop offset="0%" stop-color="#4049e920" />
+    <stop offset="50%" stop-color="#4049e900" />
+ </radialGradient>
+
+</defs>
+
+<g id="back" mask="url(#Mask)">
+ <rect width="100%" height="100%" fill="url(#tl)" />
+ <rect width="100%" height="100%" fill="url(#tc)" />
+ <rect width="100%" height="100%" fill="url(#tr)" />
+ <rect width="100%" height="100%" fill="url(#bl)" />
+ <rect width="100%" height="100%" fill="url(#br)" />
+ <rect width="100%" height="100%" fill="url(#cr)" />
+ <rect width="100%" height="100%" fill="url(#cc)" />
+ <rect width="100%" height="100%" fill="url(#tl1)"/>
+</g>
+
+<g id="s1" mask="url(#deleteTextMask)">
+  <path style=" stroke:none;fill:#ffffff;fill-opacity:1;"  d="M 32.527344 56.214844 C 27.726562 56.214844 25.496094 55.511719 21.617188 52.710938 C 19.164062 55.863281 11.398438 58.328125 11.058594 54.109375 C 11.058594 50.945312 10.355469 48.269531 9.5625 45.351562 C 8.617188 41.753906 7.542969 37.746094 7.542969 31.941406 C 7.542969 18.078125 18.917969 7.648438 32.398438 7.648438 C 45.886719 7.648438 56.457031 18.59375 56.457031 32.070312 C 56.503906 45.339844 45.796875 56.140625 32.527344 56.214844 Z M 32.722656 19.632812 C 26.160156 19.292969 21.042969 23.835938 19.910156 30.960938 C 18.976562 36.859375 20.636719 44.042969 22.046875 44.417969 C 22.726562 44.578125 24.429688 43.203125 25.496094 42.140625 C 27.25 43.351562 29.296875 44.082031 31.425781 44.253906 C 38.230469 44.578125 44.039062 39.402344 44.496094 32.609375 C 44.761719 25.800781 39.527344 20.03125 32.722656 19.644531 Z M 32.722656 19.632812 "/>
+</g>
+
+<g id="s2">
+  <text x="50%" y="62%"  text-anchor="middle" font-family="sans-serif" font-size="27.4" font-weight="bold" fill="#ffffff" style="fill-rule:evenodd;">web</text>
+</g>
+
+</svg>

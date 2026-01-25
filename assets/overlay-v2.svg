@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="16px" height="16px" viewBox="0 0 16 16" version="1.1">
+
+<defs>
+<linearGradient id="myGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+<stop offset="0%" stop-color="#4c34e7" />
+<stop offset="100%" stop-color="#9750db" />
+</linearGradient>
+</defs>
+
+<circle cx="50%" cy="50%" r="45%" fill="url(#myGradient)" stroke="#ffffffa0" stroke-width="5%" style="fill-rule:evenodd;"/>
+
+
+</svg>

@@ -68,7 +68,7 @@ export default class MainApp {
 
 				// autoplayPolicy не срабатывает, но, один хер, оставим))
 				autoplayPolicy: 'document-user-activation-required', //'user-gesture-required',
-				contextIsolation: true//false//, // native Notification override in preload :(
+				contextIsolation: false//, // native Notification override in preload :(
 			}
 		});
 
@@ -77,14 +77,15 @@ export default class MainApp {
 		this.window.webContents.insertCSS('.aside, .openedChat { height: 100vh; display: flex; flex-direction: column; }  ');
 
 		this.moduleManager = new ModuleManager([
-			new Electron21Fix(),
-			new HotkeyModule(this, this.window),
-			new TrayModule(this, this.window),
-			new WindowSettingsModule(this, this.window),
-			new ChromeVersionFix(this)
+			new Electron21Fix()
+			, new HotkeyModule(this, this.window)
+			, new TrayModule(this, this.window)
+			, new WindowSettingsModule(this, this.window)
+			, new ChromeVersionFix(this)
 		]);
 
 		this.window.on("show", () => {
+		
 			setTimeout(() => {
 				this.window.focus();
 			}, 200);
