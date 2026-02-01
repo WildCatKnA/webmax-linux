@@ -30,3 +30,42 @@ export function getUnusedPath(filePath) {
 
 ////////////////////////////////////////////////////////////////////
 
+
+export function getMyOSVersion() {
+	const arch = process.arch;
+	const version = process.getSystemVersion(); // Пример: "10.0.22631"
+	const build = parseInt(version.split('.').pop(), 10);
+	let fullVer = '';
+
+	if (process.platform === 'win32') {
+		if (build >= 22000) {
+			fullVer = 'Windows 11 ' + arch + ' (build ' + build + ')';
+
+		} else if (build >= 10240) {
+			fullVer = 'Windows 10 ' + arch + ' (build ' + build + ')';
+
+		} else if (version.startsWith('6.3')) {
+			fullVer = 'Windows 8.1 ' + arch + ' (build ' + build + ')';
+
+		} else if (version.startsWith('6.2')) {
+		    fullVer = 'Windows 8 ' + arch + ' (build ' + build + ')';
+
+		} else if (version.startsWith('6.1')) {
+			fullVer = 'Windows 7 ' + arch + ' (build ' + build + ')';
+		}
+	
+		else fullVer = 'Unknown Windows ' + arch + ' (' + version + ')';
+	}
+
+	else if (process.platform === 'linux') {
+		fullVer = 'Linux ' + arch + ' ' + version;
+	}
+
+	else if (process.platform === 'darwin') {
+		fullVer = 'Mac OS ' + arch + ' ' + version;
+	}
+
+	else fullVer = 'Unknown OS ' + arch + ' ' + version;
+
+	return fullVer;
+}
