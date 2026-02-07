@@ -14,12 +14,18 @@ This wrapper is not verified by, affiliated with, or supported by MAX Inc.
 ## 💾 Installation
 
 ### - Linux
+![Linux](screenshots/screenshot-linux.png)
+
 Use AppImage or Snap package.
 
 ### - Windows
+![Win11](screenshots/screenshot_win11.png) ![wine](screenshots/screenshot.png)
+
 Just unpack ZIP in any folder and enjoy.
 
 ### - MacOS
+![MacOS](screenshots/screenshot-macos.png)
+
 Move .App from DMG (or unpack ZIP) to /Applications.
 ##
 
