@@ -1,11 +1,11 @@
 {
 	"name": "webmax",
 	"productName": "webmax",
-	"version": "1.0.3-2",
+	"version": "1.0.3-3",
 	"description": "WebMax for Linux (unofficial)",
 	"main": "dist/index.js",
 	"scripts": {
-		"dist":    "tsc",
+		"dist":    "tsc && cp src/picker.html dist/ && cp src/picker.js dist/",
 		"watch":   "tsc -w",
 		"lint":    "eslint -c .eslintrc --ext .ts ./src",
 		"start":   "npm run dist && electron .",
@@ -17,10 +17,7 @@
 	"author": "wildcat",
 	"license": "MIT",
 	"dependencies": {
-		"electron-store": "^8.1.0",
-		"@electron-toolkit/preload": "^3.0.1",
-		"@electron-toolkit/utils": "^4.0.0",
-		"utils": "^0.3.1"
+		"electron-store": "^8.1.0"
 	},
 	"devDependencies": {
 		"electron": "^22.3.27",
@@ -48,6 +45,7 @@
 			]
 		},
 		"linux": {
+			"executableName": "webmax",
 			"appId": "WebMax Desktop",
 			"icon": "./icon.png",
 			"category": "Network",

@@ -2,8 +2,7 @@ import { app, nativeImage, Tray, } from "electron";
 import fs from "fs";
 import path from "path";
 
-const { dialog } = require('electron');
-const iconew  = path.join("./", "unread_32.png");
+//const { dialog } = require('electron'); // использовал для отладки
 
 export function getUnreadMessages(title: string) {
 	const matches = title.match(/\d+ /);
@@ -11,6 +10,7 @@ export function getUnreadMessages(title: string) {
 }
 
 ////////////////////////////////////////////////////////////////////
+// добавляем в имя файла "(n)", если исходный уже есть
 export function getUnusedPath(filePath) {
 	// такого файла нет, возвращаем исходный путь
 	if (!fs.existsSync(filePath)) return filePath;
@@ -30,10 +30,10 @@ export function getUnusedPath(filePath) {
 
 ////////////////////////////////////////////////////////////////////
 
-
+// возвращаем полную версию Windows/Linux/Mac
 export function getMyOSVersion() {
 	const arch = process.arch;
-	const version = process.getSystemVersion(); // Пример: "10.0.22631"
+	const version = process.getSystemVersion(); // пример: "10.0.22631"
 	const build = parseInt(version.split('.').pop(), 10);
 	let fullVer = '';
 
@@ -69,3 +69,5 @@ export function getMyOSVersion() {
 
 	return fullVer;
 }
+
+////////////////////////////////////////////////////////////////////

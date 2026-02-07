@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; script-src 'self'">
+    <style>
+        body { font-family: sans-serif; background: #25262d; padding: 15px; margin: 0; }
+		.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+		.item { background: white; padding: 10px; border-radius: 8px; cursor: pointer; text-align: center; border: 2px solid transparent; }
+		.item:hover { border-color: #0078d4; }
+		.item img { width: 100%; border-radius: 4px; }
+		.item span { font-size: 12px; display: block; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+		.footer { position: fixed; bottom: 0; left: 0; width: 100%; padding: 10px; background: white; text-align: right; box-sizing: border-box; }
+	</style>
+</head>
+<body>
+	<h3>Выберите экран для MAX</h3>
+	<div id="list" class="grid"></div>
+	<div class="footer"><button onclick="window.electronAPI.selectSource(null)">Отмена</button></div>
+<script src="./picker.js"></script>
+<!--<script>
+const list = document.getElementById('list');
+
+// Сообщаем Main процессу, что мы загрузились и готовы принимать данные
+window.electronAPI.sendReady();
+
+window.electronAPI.onShowSources((sources) => {
+    list.innerHTML = '';
+    sources.forEach(s => {
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.innerHTML = `<img src="${s.thumbnail}"><span>${s.name}</span>`;
+        div.onclick = () => window.electronAPI.selectSource(s.id);
+        list.appendChild(div);
+    });
+});
+</script> -->
+
+</body>
+</html>

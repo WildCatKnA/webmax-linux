@@ -1,0 +1,115 @@
+const { app, Tray, nativeImage } = require('electron');
+const sharp = require('sharp');
+const path = require('path');
+
+let tray = null;
+
+async function updateTrayIcon(count) {
+	const displayCount = count > 99 ? '99' : count;
+	
+	const svgBadge = 
+	`<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="32px" height="32px" viewBox="0 0 32 32" version="1.1">
+
+<defs>
+ <mask id="Mask">
+  <circle cx="50%" cy="50%" r="48.5%" fill="#ffffff" />
+  <path style="stroke:fill;fill-rule:evenodd;fill:#ffffff;fill-opacity:1;" stroke="white" stroke-width="20%" d="M 16.261719 28.105469 C 13.863281 28.105469 12.746094 27.757812 10.808594 26.355469 C 9.582031 27.929688 5.699219 29.164062 5.527344 27.054688 C 5.527344 25.472656 5.179688 24.136719 4.78125 22.675781 C 4.308594 20.875 3.769531 18.875 3.769531 15.972656 C 3.769531 9.039062 9.460938 3.824219 16.199219 3.824219 C 22.945312 3.824219 28.230469 9.296875 28.230469 16.035156 C 28.25 22.671875 22.898438 28.070312 16.261719 28.105469 Z M 16.363281 9.816406 C 13.078125 9.644531 10.523438 11.917969 9.957031 15.480469 C 9.488281 18.429688 10.316406 22.019531 11.023438 22.207031 C 11.363281 22.289062 12.214844 21.601562 12.746094 21.070312 C 13.625 21.675781 14.648438 22.042969 15.714844 22.125 C 19.113281 22.289062 22.019531 19.699219 22.25 16.304688 C 22.382812 12.898438 19.761719 10.015625 16.363281 9.820312 Z M 16.363281 9.816406 "/>
+ </mask>
+
+
+ <radialGradient id="tc" cx="50%" cy="0%" r="50%">
+  <stop offset="0%" stop-color="#322bc6" />
+  <stop offset="50%" stop-color="#322bc620" />
+ </radialGradient>
+
+ <radialGradient id="tl" cx="0%" cy="0%" r="50%">
+  <stop offset="0%" stop-color="#1e3ddc" />
+  <stop offset="70%" stop-color="#1e3ddc20" />
+ </radialGradient>
+
+ <radialGradient id="tl1" cx="25%" cy="25%" r="50%">
+  <stop offset="0%" stop-color="#2444f7" />
+  <stop offset="70%" stop-color="#2444f700" />
+ </radialGradient>
+
+ <radialGradient id="tr" cx="100%" cy="0%" r="50%">
+  <stop offset="0%" stop-color="#864ae5" />
+  <stop offset="70%" stop-color="#864ae550" />
+ </radialGradient>
+
+ <radialGradient id="cr" cx="100%" cy="25%" r="100%">
+  <stop offset="0%" stop-color="#ff45e5" />
+  <stop offset="70%" stop-color="#8245e500" />
+ </radialGradient>
+
+ <radialGradient id="bl" cx="20%" cy="80%" r="150%">
+  <stop offset="0%" stop-color="#1395cd" />
+  <stop offset="70%" stop-color="1395cd" />
+ </radialGradient>
+
+ <radialGradient id="br" cx="100%" cy="100%" r="100%">
+  <stop offset="0%" stop-color="#ab5ddc" />
+  <stop offset="70%" stop-color="#ab5ddc00" />
+ </radialGradient>
+
+ <radialGradient id="cc" cx="100%" cy="50%" r="100%">
+  <stop offset="0%" stop-color="#4049e920" />
+  <stop offset="50%" stop-color="#4049e900" />
+ </radialGradient>
+
+</defs>
+
+<g id="back" mask="url(#Mask)">
+ <rect width="100%" height="100%" fill="url(#tl)" />
+ <rect width="100%" height="100%" fill="url(#tc)" />
+ <rect width="100%" height="100%" fill="url(#tr)" />
+ <rect width="100%" height="100%" fill="url(#bl)" />
+ <rect width="100%" height="100%" fill="url(#br)" />
+ <rect width="100%" height="100%" fill="url(#cr)" />
+ <rect width="100%" height="100%" fill="url(#cc)" />
+ <rect width="100%" height="100%" fill="url(#tl1)"/>
+</g>
+
+<g id="s1">
+ <path style=" stroke:none;fill:#ffffff;fill-opacity:1;" d="M 16.261719 28.105469 C 13.863281 28.105469 12.746094 27.757812 10.808594 26.355469 C 9.582031 27.929688 5.699219 29.164062 5.527344 27.054688 C 5.527344 25.472656 5.179688 24.136719 4.78125 22.675781 C 4.308594 20.875 3.769531 18.875 3.769531 15.972656 C 3.769531 9.039062 9.460938 3.824219 16.199219 3.824219 C 22.945312 3.824219 28.230469 9.296875 28.230469 16.035156 C 28.25 22.671875 22.898438 28.070312 16.261719 28.105469 Z M 16.363281 9.816406 C 13.078125 9.644531 10.523438 11.917969 9.957031 15.480469 C 9.488281 18.429688 10.316406 22.019531 11.023438 22.207031 C 11.363281 22.289062 12.214844 21.601562 12.746094 21.070312 C 13.625 21.675781 14.648438 22.042969 15.714844 22.125 C 19.113281 22.289062 22.019531 19.699219 22.25 16.304688 C 22.382812 12.898438 19.761719 10.015625 16.363281 9.820312 Z M 16.363281 9.816406 "/>
+</g>
+
+<g id="unread">
+ <circle cx="50%" cy="50%" r="37%" fill="#101010" stroke="#d0d0d0ff" stroke-width="3%" style="fill-rule:evenodd;"/>
+ <text x="50.4%" y="67%" text-anchor="middle" font-family="sans-serif" font-size="17" font-weight="bold" fill="#fefefe" style="fill-rule:evenodd;">${displayCount}</text>
+</g>
+</svg>`;
+
+	try {
+		// 2. Конвертируем SVG в PNG Buffer
+		const pngBuffer = await sharp(Buffer.from(svgBadge))
+			.png()
+			.toBuffer();
+
+		const icon = nativeImage.createFromBuffer(pngBuffer);
+
+		// 3. Создаем или обновляем трей
+		if (!tray) {
+			tray = new Tray(icon);
+		} else {
+			tray.setImage(icon); // Динамическое обновление
+		}
+	} catch (err) {
+		console.error('Ошибка генерации иконки:', err);
+	}
+}
+
+// Пример использования
+app.whenReady().then(() => {
+	let messages = 0;
+	
+	// Инициализация
+	updateTrayIcon(messages);
+
+	// Симуляция новых сообщений каждые 5 секунд
+	setInterval(() => {
+		messages++;
+		updateTrayIcon(messages);
+	}, 5000);
+});
