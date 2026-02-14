@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer, webFrame } from "electron";
 const api = {};
 const { dialog } = require('electron');
 
-////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////
 
 function overrideNotification() {
     window.Notification = class extends Notification {
@@ -20,7 +20,7 @@ function handleChromeVersionBug() {
     });
 }
 
-////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////
 // очередная попытка остановить автовоспроизведение видео в MAX...
 // и, по всей видимости  сработало =) внедрим  скриптик, который
 // будет выполняться внутри "мира" страницы
@@ -53,11 +53,14 @@ const scriptToInject = `
     }, { capture: true, passive: true });
 })();
 `;
-////////////////////////////////////////////////////////////////////////////////
 
-// попытаемся развернуть картинки во весь экран - всё криво,
-// но картинку разворачивает (по двойному клику ЛКМ)
+///////////////////////////////////////////
 
+// попытаемся развернуть картинки во весь экран
+// вариант 1 - всё криво, но картинку
+// разворачивает (по двойному клику ЛКМ)
+
+///*
 const imageFullscreenScript = `
 document.addEventListener('dblclick', (e) => {
 	const target = e.target;
@@ -74,25 +77,28 @@ document.addEventListener('dblclick', (e) => {
 }, true);
 `;//*/
 
+// вариант 2 - при клике на картинку или
+// видео должно разворачиваться
+/*const imageFullscreenScript = `
+document.addEventListener('click', (e) => {
+	const target = e.target;
+	if (target.tagName === 'IMG' && target.closest('.message-content')) {
+		window.electronAPI.openViewer({ url: target.src, type: 'image' });
+	}
+
+//	if (target.tagName === 'VIDEO') {
+//		window.electronAPI.openViewer({ url: target.src, type: 'video' });
+//	}
+}, true);
+`;//*/
+
+
 webFrame.executeJavaScript(scriptToInject); // видео на паузу
 webFrame.executeJavaScript(imageFullscreenScript); // разрешим картинки в fullScreen
 
-////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////
 
-
-contextBridge.exposeInMainWorld('electronAPI', {
-	onDownloadComplete: (callback) => ipcRenderer.on('dl-complete', (event, data) => callback(data))
-});
-
-
-contextBridge.exposeInMainWorld('electronAPI', {
-  // для окна выбора транслируемого объекта
-  sendReady: () => ipcRenderer.send('picker-ready'),
-  onShowSources: (cb: any) => ipcRenderer.on('show-sources', (_e, s) => cb(s)),
-  selectSource: (id: string | null) => ipcRenderer.send('source-selected', id),
-});
-
-// спиздил у официальной махи
+// спиздил у официальной махи, чуть подковырял
 if (process.contextIsolated) {
 	try {
 		let createKey = function(id, messageId, chatId) {
@@ -105,6 +111,7 @@ if (process.contextIsolated) {
 				subs.get(createKey(fileId, messageId, chatId))?.onProgress({ downloadedSize, totalSize });
 			}
 		);
+
 		contextBridge.exposeInMainWorld("electron", {
 			downloadFile: ({ url, fileId, messageId, chatId, fileName }, onProgress) => {
 				subs.set(createKey(fileId, messageId, chatId), { onProgress });
@@ -119,19 +126,65 @@ if (process.contextIsolated) {
 			}
 		});
 		contextBridge.exposeInMainWorld('api', api);
+
+		///////////////////////////////////////////
+		contextBridge.exposeInMainWorld('electronAPI', {
+			// выбор экрана для трансляции
+			sendReady: () => ipcRenderer.send('picker-ready'),
+			onShowSources: (cb: any) => ipcRenderer.on('show-sources', (_e, s) => cb(s)),
+			selectSource: (id: string | null) => ipcRenderer.send('source-selected', id),
+
+			// уведомления о сообщениях
+			sendNotification: (data: any) => ipcRenderer.send('notify-me', data)
+
+/*			// просмотрщик картинок/видео
+			,
+			openViewer: (data: { url: string, type: 'image' | 'video' }) => ipcRenderer.send('open-viewer', data),
+			onLoadContent: (cb: any) => ipcRenderer.on('load-content', (_e, data) => cb(data)),
+			closeViewer: () => ipcRenderer.send('close-viewer')
+			//*/
+		});
+		//console.info('--- Preload Script Active ---'); // для отладки
+		///////////////////////////////////////////
+
 	} catch (error) {
 		console.error(error);
 	}
+
+
+/*////////
+window.addEventListener('click', (e: MouseEvent) => {
+  const target = e.target as HTMLElement;
+
+  // Ищем клик по картинке (тег <img>)
+  if (target && target.tagName === 'IMG') {
+    const img = target as HTMLImageElement;
+    
+    // Блокируем стандартное поведение браузера (если оно есть)
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Отправляем сигнал в Main процесс
+    ipcRenderer.send('open-viewer', { 
+      url: img.src, 
+      type: 'image' 
+    });
+  }
+}, true); // true — чтобы поймать клик раньше скриптов самого сайта
+////////*/
+
 } else {
 //	window.electron = electronAPI;
 //	window.api = api;
 }
 
+// кажись, до этого момента не доходит, хотя сохранялка работает... пока оставим
+contextBridge.exposeInMainWorld('electronAPI', {
+	onDownloadComplete: (callback) => ipcRenderer.on('dl-complete', (event, data) => callback(data))
+});
+
 overrideNotification();
 handleChromeVersionBug();
-
-
-////////////////////////////////////////////////////////////////////////////////
 
 
 

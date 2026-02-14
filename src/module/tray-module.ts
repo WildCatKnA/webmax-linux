@@ -136,7 +136,7 @@ export default class TrayModule extends Module {
 			unread = getUnreadMessages(title);
 			this.window.setTitle(title);
 
-			if (unread > 0) {
+			if (unread !== 0) { // или таки >0 ?
 				this.tray.setToolTip(title + " - MAX");
 				this.tray.setImage(ICON_UNREAD);
 				if (process.platform === 'win32') {

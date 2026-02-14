@@ -1,40 +1,155 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; script-src 'self'">
-    <style>
-        body { font-family: sans-serif; background: #25262d; padding: 15px; margin: 0; }
-		.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-		.item { background: white; padding: 10px; border-radius: 8px; cursor: pointer; text-align: center; border: 2px solid transparent; }
-		.item:hover { border-color: #0078d4; }
-		.item img { width: 100%; border-radius: 4px; }
-		.item span { font-size: 12px; display: block; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-		.footer { position: fixed; bottom: 0; left: 0; width: 100%; padding: 10px; background: white; text-align: right; box-sizing: border-box; }
-	</style>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+<style>
+::-webkit-scrollbar { /* scrollbar'ы нам ни к чему */
+  display: none;
+ }
+ body {
+  font-family: 'Segoe UI', Tahoma, sans-serif; 
+  background: #25262d;
+  color: #ffffff; 
+  padding: 15px; 
+  margin: 0; 
+  overflow-y: auto; 
+ }
+
+ h3 { 
+  font-size: 16px; 
+  font-weight: 500; 
+  color: #e0e0e0;
+  margin: 0 0 15px 5px; 
+ }
+
+.dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background: #ff4d4d;
+  border-radius: 50%;
+  margin-right: 8px;
+  margin-left: 8px;
+  box-shadow: 0 0 8px #ff4d4d;
+  animation: pulse 1.5s infinite;
+ }
+
+ @keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
+ }
+
+.grid { 
+  display: grid; 
+  /* auto-fill сам решит, сколько колонок влезет (минимум 150px) */
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); 
+  gap: 15px; 
+  padding-bottom: 80px; 
+}
+
+.item { 
+  background: #2d2d2d; 
+  padding: 10px; 
+  border-radius: 8px; 
+  cursor: pointer; 
+  border: 1px solid #3d3d3d; 
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s ease;
+}
+
+/* Контейнер для картинки с фиксированным соотношением сторон */
+.thumbnail-wrapper {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #000; /* черный фон для пустых полей */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+ .item:hover { 
+  background: #3d3d3d;
+  border-color: #0078d4; /* акцент */
+  transform: scale(1.03); 
+ }
+
+.item img { 
+  width: 100%; 
+  height: 100%;
+  object-fit: contain; 
+}
+
+.item span { 
+  margin-top: 10px;
+  font-size: 12px;
+  color: #ccc;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+ .footer { 
+  position: fixed; 
+  bottom: 0; 
+  left: 0; 
+  width: 100%; 
+  padding: 12px 20px; 
+  background: #252525; 
+  border-top: 1px solid #333;
+  display: flex;
+  justify-content: flex-end;
+  box-sizing: border-box; 
+ }
+
+ button { 
+  padding: 6px 16px; 
+  border-radius: 4px; 
+  border: 1px solid #444; 
+  background: #333; 
+  color: #eee;
+  cursor: pointer; 
+  font-size: 13px;
+ }
+
+ button:hover { 
+  background: #444; 
+  border-color: #666;
+ }
+
+#search-input {
+ width: 100%;
+ padding: 10px 15px;
+ background: #2d2d2d;
+ border: 1px solid #444;
+ border-radius: 6px;
+ color: white;
+ font-size: 14px;
+ outline: none;
+ box-sizing: border-box;
+ }
+
+ #search-input:focus {
+   border-color: #0078d4;
+   box-shadow: 0 0 5px rgba(0, 120, 212, 0.4);
+ }
+</style>
+
 </head>
 <body>
-	<h3>Выберите экран для MAX</h3>
-	<div id="list" class="grid"></div>
-	<div class="footer"><button onclick="window.electronAPI.selectSource(null)">Отмена</button></div>
-<script src="./picker.js"></script>
-<!--<script>
-const list = document.getElementById('list');
-
-// Сообщаем Main процессу, что мы загрузились и готовы принимать данные
-window.electronAPI.sendReady();
-
-window.electronAPI.onShowSources((sources) => {
-    list.innerHTML = '';
-    sources.forEach(s => {
-        const div = document.createElement('div');
-        div.className = 'item';
-        div.innerHTML = `<img src="${s.thumbnail}"><span>${s.name}</span>`;
-        div.onclick = () => window.electronAPI.selectSource(s.id);
-        list.appendChild(div);
-    });
-});
-</script> -->
-
+  <h3 style="margin-top:5"><center/><span class="dot"></span><b>Выберите экран для трансляции</b><span class="dot"></span></h3>
+  <input type="text" id="search-input" placeholder="Поиск окна или приложения..." autocomplete="off" style="margin:0px 0px 10px 0px">
+  <div id="list" class="grid">
+  <!-- источники -->
+  </div>
+  <div class="footer">
+    <button id="cancel-btn">Отмена</button>
+  </div>
+  <script src="./picker.js"></script>
 </body>
 </html>

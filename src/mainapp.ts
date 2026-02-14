@@ -37,9 +37,8 @@ const { dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const downloadsStore = new Store();
-
-let workerWindow: BrowserWindow | null = null;
-let pickerWindow: BrowserWindow | null = null;
+let pickerWin: BrowserWindow | null = null;
+let viewerWin: BrowserWindow | null = null;
 
 //const USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.9999.0 Safari/537.36";
 
@@ -66,12 +65,16 @@ export default class MainApp {
 				preload: path.join(__dirname, 'preload.js'),
 				spellcheck: false,
 //				autoplayPolicy: 'user-gesture-required',
-				contextIsolation: true // if false - native Notification override in preload 
+				contextIsolation: true, // if false - native Notification override in preload 
+				sandbox: false
 			}
 		});
 
-		// костыль в виде CSS-кода для  НОРМАЛЬНОГО выравнивания содержимого по высоте окна от криворучек, выдумавших маху
-		// (видимо, electron-21 и ниже криво обрабатывают сие безарбузие,  рисуя скроллбары поверх махо-интерфейсовых)
+//		this.window.webContents.openDevTools(); // для отладки
+
+		// костыль в виде CSS-кода для  НОРМАЛЬНОГО выравнивания содержимого по высоте окна
+		// (видимо, electron-21 и ниже криво обрабатывают сие безарбузие,  рисуя скроллбары
+		// поверх мах-интерфейсовых)
 		if (process.versions.electron.startsWith('21.')) {
 			this.window.webContents.insertCSS('.aside, .openedChat { height: 100vh; display: flex; flex-direction: column; }  ');
 		}
@@ -118,14 +121,14 @@ export default class MainApp {
 	
 
 	public init() {
-		app.setAppUserModelId('webmax');
-		//app.setDesktopName('webmax.desktop');
-//		electronApp.setAppUserModelId("ru.oneme.electron"); // у официалов это было
+//		app.setAppUserModelId('webmax');
+		app.setAppUserModelId('ru.oneme.electron'); // прикинемся "ветошью"
 		app.setAsDefaultProtocolClient("max");
 
-		////////////////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////
 		// убираем electron и наше  приложение из UserAgent
 		// (прикидываемся "ветошью", т.е. мы - а-ля Chrome)
+		// надо оно или нет? хз
 		/*
 		const defaultUserAgent = new BrowserWindow({ show: false }).webContents.getUserAgent();
 		let usSTR = defaultUserAgent.replace(/Electron\/[\d.]+\s/, '');  
@@ -133,10 +136,25 @@ export default class MainApp {
 		const cleanUserAgent = usSTR;
 		app.userAgentFallback = cleanUserAgent;//*/
 
-		////////////////////////////////////////////////////////////////////////
-		// разрешение для трансляции экрана
-		// вариант 1 - вещает только весь экран
-		session.defaultSession.setDisplayMediaRequestHandler(
+		///////////////////////////////////////////////
+		// уведомления, доступ к медиа и микрофону, если возможно, и прочее
+		// types 'geolocation' | 'unknown' | 'clipboard-read' | 'clipboard-sanitized-write' |
+		// 'display-capture' | 'mediaKeySystem' | 'midi' | 'midiSysex' | 'pointerLock' | 'fullscreen' |
+		// 'openExternal' | 'window-placement' and 'audioCapture' 
+		session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
+			const allowedPermissions = ['fullscreen', 'notifications', 'media', 'audioCapture', 'clipboard-read', 'clipboard-sanitized-write']; 
+			if (allowedPermissions.includes(permission)) {
+				callback(true); 
+			} else {
+				callback(false);
+			}
+		});
+
+		///////////////////////////////////////////////
+		// разрешение  для  трансляции  экрана (electron-22  не  позволяет  выбрать
+		// источник, т.к. передается один аргумент, поэтому будем вещать весь экран
+		// вариант 1 - просто демонстрируем весь экран - пока оставим...
+/*		session.defaultSession.setDisplayMediaRequestHandler(
 			(request, callback) => {
 				desktopCapturer.getSources({ types: ["screen"] }).then((sources) => {
 					callback({ video: sources[0], audio: "loopback" });
@@ -144,70 +162,82 @@ export default class MainApp {
 			} //, { useSystemPicker: true } // выбор источника - не работает в electron-22
 		);//*/
 
-		// вариант 2 - не работает, ибо оно не знает, чего вещать
-/*		session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
-			callback({ video: (request as any).video, audio: (request as any).audio });
-		}
-//		,{ useSystemPicker: true }
-		);//*/
-
-		// вариант 3 - грабли с выбором, не показывает варианты
-		////////////////////////////////////////////////////////////////////////
-/*		session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
+		///////////////////////////////////////////////
+		// вариант 2 - пробуем выбрать, что будем транслировать...
+		// (плюс файлы picker.html, picker.js и доп.код в preload)
+		// кажись, теперь получилось =)
+		session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
 			desktopCapturer.getSources({ 
-				types: ['screen', 'window'], 
-				thumbnailSize: { width: 300, height: 300 } 
+				types: ['screen', 'window'],
+				fetchWindowIcons: true, 
+				thumbnailSize: { width: 300, height: 200 } 
 			}).then((sources) => {
-			
-				pickerWindow = new BrowserWindow({
-					width: 500,
+
+				pickerWin = new BrowserWindow({
+					width: 800,
 					height: 600,
 					parent: this.window,
 					modal: true,
-					backgroundColor: "#25262d",
+					title: "MAX - источники",
+					icon: path.join(app.getAppPath(), "assets/", process.platform === 'win32' ? "app.ico":"mainapp.png"),
+					backgroundColor: '#25262d',
 					autoHideMenuBar: true,
 					webPreferences: {
 						preload: path.join(__dirname, 'preload.js'),
-						contextIsolation: true,
-						nodeIntegration: false
+						contextIsolation: true/*,
+						// вроде не актуально, но пока оставим
+						sandbox: false, // чтобы preload зацепился
+						webSecurity: false // разрешаем локальный контент
+						//*/
 					}
 				});
 
-				pickerWindow.loadFile(path.join(__dirname, 'picker.html'));
+				pickerWin.loadFile(path.join(__dirname, 'picker.html'));
 
-				// отправляем данные, когда renderer готов
+//				this.window.webContents.openDevTools(); // для отладки
+
+				// готовность окна выбора
 				ipcMain.once('picker-ready', () => {
 					const viewSources = sources.map(s => ({
 						id: s.id,
 						name: s.name,
 						thumbnail: s.thumbnail.toDataURL()
 					}));
-					pickerWindow?.webContents.send('show-sources', viewSources);
+					pickerWin?.webContents.send('show-sources', viewSources);
 				});
 
-				// выбираем источник
+				// выбор пользователя
 				ipcMain.once('source-selected', (_event, sourceId) => {
-					const selected = sources.find(s => s.id === sourceId);
-					callback(selected ? { video: selected, audio: 'loopback' } : {});
-					pickerWindow?.close();
+					if (!sourceId) {
+//						callback({}); // !!!вызываем при закрытии окна, иначе ошибка
+					} else {
+						const selected = sources.find(s => s.id === sourceId);
+						if (selected) {
+							// выбранный источник
+							callback({ video: selected, audio: 'loopback' });
+						} else {
+//							callback({}); // !!!вызываем при закрытии окна, иначе ошибка
+						}
+					}
+
+					if (pickerWin) {
+						pickerWin.close();
+						pickerWin = null;
+					}
+				});
+
+				pickerWin.on('closed', () => {
+				try {
+					callback({}); // !!!вот здесь и вызываем
+					} catch (e) {
+						// игнорируем, если callback уже был вызван ранее
+					}
+					ipcMain.removeAllListeners('source-selected');
+					ipcMain.removeAllListeners('picker-ready');
 				});
 			});
-		});//*/
-		////////////////////////////////////////////////////////////////////////
-
-		// разрешаем уведомления, доступ к медиа и микрофону, если возможно
-		// types '"geolocation" | "unknown" | "clipboard-read" | "clipboard-sanitized-write" |
-		// "display-capture" | "mediaKeySystem" | "midi" | "midiSysex" | "pointerLock" | "fullscreen" |
-		// "openExternal" | "window-placement"' and '"audioCapture"' 
-		session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
-			const allowedPermissions = ['fullscreen', 'notifications', 'media', 'audioCapture']; 
-			if (allowedPermissions.includes(permission)) {
-				callback(true); 
-			} else {
-				callback(false);
-			}
-		});
-		////////////////////////////////////////////////////////////////////////
+		}); //*/
+		///////////////////////////////////////////////
 		
 		this.makeLinksOpenInBrowser();
 		this.registerListeners();
@@ -216,26 +246,11 @@ export default class MainApp {
 
 		this.window.loadURL('https://web.max.ru/', {
 //			userAgent: USER_AGENT,
-			extraHeaders: "pragma: no-cache\n"
+			extraHeaders: "pragma: no-cache\n" // а оно надо?
 		});
 
 		this.moduleManager.beforeLoad();
 		this.moduleManager.onLoad();
-		///////////////////////////////////////////////
-		//  полная блокировка  видеоплеера в MAX
-		//	слишком радикально, но оно сработало
-		//  (но блокировала и аудиосообщения...)
-		// --- уже не актуально, победили ---
-		/*if (this.blockAudVid) {
-			this.window.webContents.session.webRequest.onHeadersReceived((details, callback) => {
-				callback({
-					responseHeaders: {
-						...details.responseHeaders,
-						'Content-Security-Policy': ["media-src 'none'"] // Запрещает ВСЁ медиа
-					}
-				});
-			});
-		} //*/
 		///////////////////////////////////////////////
 
 		this.window.show();
@@ -281,7 +296,7 @@ export default class MainApp {
 		return { action: "deny" };
 		}); // */
 
-		////////////////////////////////////////////////////////////
+		///////////////////////////////////////////////
 	}
 
 	private registerListeners() {
@@ -315,7 +330,38 @@ export default class MainApp {
 			this.window.focus();
 		});
 
+		///////////////////////////////////////////
+/*		ipcMain.on('open-viewer', (event, { url, type }) => {
+			console.info("мы в open-viewer");
+			if (viewerWin && !viewerWin.isDestroyed()) {
+				viewerWin.close();
+			}
 
+			viewerWin = new BrowserWindow({
+				fullscreen: true,
+				backgroundColor: '#000000',
+				frame: false,
+				transparent: false,
+				webPreferences: {
+					preload: path.join(__dirname, 'preload.js'),
+					contextIsolation: true
+				}
+			});
+
+			// HTML файл просмотрщика
+			viewerWin.loadFile(path.join(__dirname, 'viewer.html'));
+
+			viewerWin.webContents.on('did-finish-load', () => {
+				viewerWin?.webContents.send('load-content', { url, type });
+			});
+
+			// закрытие по клику мимо или кнопке
+			ipcMain.once('close-viewer', () => {
+				viewerWin?.close();
+			});
+		});// */
+
+		///////////////////////////////////////////
 		// спиздил из официальной махи и подогнал под свои нужды...
 		// но, на мой взгляд, всё можно сделать проще, но и это работает
 		ipcMain.handle("download-file", async (_, { url, fileId, messageId, chatId, fileName }) => {

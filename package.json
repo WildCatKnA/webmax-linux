@@ -1,11 +1,11 @@
 {
 	"name": "webmax",
 	"productName": "webmax",
-	"version": "1.0.3-3",
+	"version": "1.0.4-1",
 	"description": "WebMax for Linux (unofficial)",
 	"main": "dist/index.js",
 	"scripts": {
-		"dist":    "tsc && cp src/picker.html dist/ && cp src/picker.js dist/",
+		"dist":    "tsc && cp src/*.html dist && cp src/*.js dist/",
 		"watch":   "tsc -w",
 		"lint":    "eslint -c .eslintrc --ext .ts ./src",
 		"start":   "npm run dist && electron .",
@@ -38,7 +38,14 @@
 			"icon": "./icon.icns",
 			"entitlements": "./entitlements.mac.plist",
 			"entitlementsInherit": "./entitlements.mac.plist",
-			"category": "Network",
+			"extendInfo": {
+				"NSMicrophoneUsageDescription": "Доступ к микрофону для аудиосообщений.",
+				"NSScreenCaptureUsageDescription": "Доступ к экрану для трансляций.",
+				"NSCameraUsageDescription": "Доступ к камере для видеозвонков.",
+				"CFBundleIdentifier": "com.wildcat.webmax",
+				"CFBundleName": "webmax"
+			},
+			"category": "public.app-category.social-networking",
 			"target": [
 				"dmg",
 				"zip"
