@@ -45,7 +45,7 @@ npm install
 
 3. Run or build
 ```bash
-npm start      # compile and run
+npm run start  # compile and run
 npm run build  # compile and build
 ```
 
