@@ -94,10 +94,9 @@ document.addEventListener('click', (e) => {
 
 
 webFrame.executeJavaScript(scriptToInject); // видео на паузу
-webFrame.executeJavaScript(imageFullscreenScript); // разрешим картинки в fullScreen
+//webFrame.executeJavaScript(imageFullscreenScript); // разрешим картинки в fullScreen
 
-///////////////////////////////////////////
-
+//////////////////////////////////////////////
 // спиздил у официальной махи, чуть подковырял
 if (process.contextIsolated) {
 	try {
@@ -145,22 +144,32 @@ if (process.contextIsolated) {
 			//*/
 		});
 		//console.info('--- Preload Script Active ---'); // для отладки
-		///////////////////////////////////////////
+		/////////////////////////////////////////////////
+		// при клике на картинку/видео врубаем fullscreen
+		const observer = new MutationObserver(() => {
+			const mover = document.querySelector('[class*="mover"]');
+			ipcRenderer.send('toggle-max-viewer', !!mover);
+		});
 
+		window.addEventListener('DOMContentLoaded', () => {
+			observer.observe(document.body, { childList: true, subtree: true });
+		});//*/
+		///////////////////////////////////////////
 	} catch (error) {
 		console.error(error);
 	}
 
 
 /*////////
+// попытска сделать собственный просмотрщик...
 window.addEventListener('click', (e: MouseEvent) => {
   const target = e.target as HTMLElement;
 
-  // Ищем клик по картинке (тег <img>)
+  // ищем клик по картинке (тег <img>)
   if (target && target.tagName === 'IMG') {
     const img = target as HTMLImageElement;
     
-    // Блокируем стандартное поведение браузера (если оно есть)
+    // блокируем стандартное поведение браузера (если оно есть)
     e.preventDefault();
     e.stopPropagation();
 

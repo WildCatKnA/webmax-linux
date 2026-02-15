@@ -2,6 +2,7 @@ import { app, nativeImage, Tray, } from "electron";
 import fs from "fs";
 import path from "path";
 
+const os = require('os');
 //const { dialog } = require('electron'); // использовал для отладки
 
 export function getUnreadMessages(title: string) {
@@ -32,10 +33,23 @@ export function getUnusedPath(filePath) {
 
 // возвращаем полную версию Windows/Linux/Mac
 export function getMyOSVersion() {
-	const arch = process.arch;
+	// разрядность
+	function getSystemArch() {
+		if (process.platform === 'win32') {
+			if (process.arch === 'x64' || process.env.PROCESSOR_ARCHITEW6432) {
+				return 'x64';
+			}
+			return 'x86';
+		}
+		else {
+			return os.arch();
+		}
+	}
+
 	const version = process.getSystemVersion(); // пример: "10.0.22631"
 	const build = parseInt(version.split('.').pop(), 10);
 	let fullVer = '';
+	let arch = getSystemArch();
 
 	if (process.platform === 'win32') {
 		if (build >= 22000) {

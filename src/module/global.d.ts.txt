@@ -7,12 +7,3 @@ declare global {
 		electronAPI: IElectronAPI;
 	}
 }
-
-interface UserActivation {
-	readonly hasBeenActive: boolean;
-	readonly isActive: boolean;
-}
-
-interface Navigator {
-	readonly userActivation: UserActivation;
-}

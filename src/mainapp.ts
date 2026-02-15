@@ -58,6 +58,7 @@ export default class MainApp {
 			minWidth: 800,
 			minHeight: 600,
 			backgroundColor: "#25262d",
+//			transparent: true,
 //			useContentSize: true,//false
 			show: false,
 			autoHideMenuBar: true,
@@ -194,8 +195,6 @@ export default class MainApp {
 
 				pickerWin.loadFile(path.join(__dirname, 'picker.html'));
 
-//				this.window.webContents.openDevTools(); // для отладки
-
 				// готовность окна выбора
 				ipcMain.once('picker-ready', () => {
 					const viewSources = sources.map(s => ({
@@ -330,6 +329,16 @@ export default class MainApp {
 			this.window.focus();
 		});
 
+		///////////////////////////////////////////
+		// махинации с просмотрщиком
+
+		ipcMain.on('toggle-max-viewer', (event, isActive) => {
+			const win = BrowserWindow.fromWebContents(event.sender);
+			if (win) {
+				win.setFullScreen(isActive);
+//				win.setMenuBarVisibility(!isActive);
+			}
+		}); /*/
 		///////////////////////////////////////////
 /*		ipcMain.on('open-viewer', (event, { url, type }) => {
 			console.info("мы в open-viewer");

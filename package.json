@@ -1,11 +1,11 @@
 {
 	"name": "webmax",
 	"productName": "webmax",
-	"version": "1.0.4-1",
+	"version": "1.0.4-2",
 	"description": "WebMax for Linux (unofficial)",
 	"main": "dist/index.js",
 	"scripts": {
-		"dist":    "tsc && cp src/*.html dist && cp src/*.js dist/",
+		"dist":    "tsc && cp src/picker.html dist/ && cp src/picker.js dist/",
 		"watch":   "tsc -w",
 		"lint":    "eslint -c .eslintrc --ext .ts ./src",
 		"start":   "npm run dist && electron .",
@@ -30,7 +30,10 @@
 			"appId": "WebMax Desktop",
 			"icon": "./icon.ico",
 			"target": [
-				"zip"
+				{
+					"target": "zip",
+					"arch": ["x64", "ia32"]
+				}
 			]
 		},
 		"mac": {

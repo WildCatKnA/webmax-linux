@@ -57,13 +57,11 @@ export default class TrayModule extends Module {
 
 		this.tray.setContextMenu(menu);
 		this.tray.setToolTip(ttMAX);
-		this.tray.setTitle(' ');
-		if (process.platform === 'linux') this.tray.setTitle('');
 		this.tray.on("click", (/*event, bounds*/) => {
 			if (process.platform !== 'darwin') { this.onClickShowHide(); }
 		});
 		this.tray.on('right-click', () => {
-//			this.tray.setContextMenu(menu);
+			this.tray.setContextMenu(menu);
 			this.tray.popUpContextMenu(menu);
 		});	
 	}
@@ -97,19 +95,21 @@ export default class TrayModule extends Module {
 	}
 
 	private showAboutDlg() {
+		let appArch = process.arch;
+		if (appArch === 'ia32') appArch='x86';
 		const about = dialog.showMessageBox(this.window, {
 			icon: ICON_ABOUT,
 			buttons: ['OK'],
 			title:  'О программе...',
-			message:'WebMax v.'+ app.getVersion() + '/ Electron v.' + process.versions.electron
+			message:'WebMax v.'+ app.getVersion() + ' (' + appArch + ') / Electron v.' + process.versions.electron
 			,
 			detail:
 					'OS: ' + getMyOSVersion()
-					+ (process.platform === 'linux'? '\nDesktop: ' + process.env.XDG_CURRENT_DESKTOP: '')
+					+ (process.platform === 'linux'? '\nDesktop: ' + process.env.XDG_SESSION_TYPE + '/' + process.env.XDG_CURRENT_DESKTOP: '')
 					+'\n\n'+
 //					'UA: ' + session.defaultSession.getUserAgent() + '\n\n' +
 					'Неофициальное приложение MAX\n'+
-					'для Linux x64, Windows-7 x64 и выше,\n'+
+					'для Linux x64, Windows-7 и выше (32/64),\n'+
 					'или Mac OS 10.15 и выше.\n\n'+
 					'Copyright © 2023, Alberto Mimbrero\n'+
 					'Copyright © 2026, WildCat/KnA\n\n'
