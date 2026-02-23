@@ -49,9 +49,12 @@ export default class HotkeyModule extends Module {
 			},
 			{
 				control: true,
-				keys: ["0"],
-				action: () => this.window.webContents.setZoomLevel(0)
-			},
+				keys: ["="],
+				action: () => {
+					if (this.window.webContents.getZoomFactor() < 3)
+						this.window.webContents.zoomLevel += 1
+				}
+			}, 
 			{
 				control: true,
 				keys: ["-"],
@@ -59,6 +62,11 @@ export default class HotkeyModule extends Module {
 					if (this.window.webContents.getZoomFactor() > 0.5)
 						this.window.webContents.zoomLevel -= 1
 				}
+			},// */
+			{
+				control: true,
+				keys: ["0"],
+				action: () => this.window.webContents.setZoomLevel(0)
 			},
 			{
 				keys: ["F5"],

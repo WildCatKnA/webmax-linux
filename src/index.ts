@@ -6,22 +6,36 @@ const fs = require('fs');
 /////////////////////////////////////////////////////////////////
 // переключаем пути к данным, если рядом с исполняемым файлом 
 // находится файл 'is_portable.txt' (делаемся портабельными)
-function checkPortableMode() {
-	const exeDir = path.dirname(app.getPath('exe'));
-	const flagPath = path.join(exeDir, 'is_portable.txt');
 
-	if (fs.existsSync(flagPath)) {
-		const portableDataPath = path.join(exeDir, 'data');
-
-		// основные пути в папку 'data' рядом с exe
-		app.setPath('userData', portableDataPath);
-		app.setPath('sessionData', portableDataPath);
-		app.commandLine.appendSwitch('user-data-dir', portableDataPath);
+function isWritable(dir) {
+	try {
+		// наличие прав на запись
+		fs.accessSync(dir, fs.constants.W_OK);
+		return true;
+	} catch (err) {
+		return false;
 	}
 }
 
+const exeDir = path.dirname(app.getPath('exe'));
+
+if (fs.existsSync(path.join(exeDir, 'is_portable.txt'))) {
+	if (isWritable(exeDir)) {
+		// переключаемся на Portable
+		const portableDataPath = path.join(exeDir, 'data');
+		app.setPath('userData', portableDataPath);
+		app.setPath('sessionData', portableDataPath);
+		app.commandLine.appendSwitch('user-data-dir', portableDataPath);
+	} else {
+		// облом, оставляем %AppData%
+		console.error("Нет прав на запись в папку приложения. Используется стандартный путь.");
+
+	}
+}
+
+
 // проверяемся
-checkPortableMode();
+//checkPortableMode();
 
 /////////////////////////////////////////////////////////////////
 import MainApp from './mainapp';

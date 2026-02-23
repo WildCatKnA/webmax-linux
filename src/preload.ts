@@ -4,6 +4,7 @@ const { dialog } = require('electron');
 
 ///////////////////////////////////////////
 
+
 function overrideNotification() {
     window.Notification = class extends Notification {
         constructor(title: string, options: NotificationOptions) {
@@ -20,9 +21,9 @@ function handleChromeVersionBug() {
     });
 }
 
-//////////////////////////////////////////////////////////////////
-// очередная попытка остановить автовоспроизведение видео в MAX...
-// и, по всей видимости  сработало =) внедрим  скриптик, который
+//////////////////////////////////////////////////////
+// попытка остановить автовоспроизведение видео в MAX.
+// вроде бы  сработало =) внедрим  скриптик, который
 // будет выполняться внутри "мира" страницы
 const scriptToInject = `
 (function() {
@@ -93,6 +94,61 @@ document.addEventListener('click', (e) => {
 `;//*/
 
 
+
+///////////////////////////////////////////
+///////////////////////////////////////////
+// Загружаем сохраненный масштаб или ставим 100%
+/*/
+let currentFontPercent = parseInt(localStorage.getItem('max-font-scale') || '1');
+//let currentFontPercent = 1;
+
+function applyMaxFontSmooth(percent: number) {
+	const styleId = 'electron-font-smooth-override';
+	let styleElement = document.getElementById(styleId);
+
+	if (!styleElement) {
+		styleElement = document.createElement('style');
+		styleElement.id = styleId;
+		document.head.appendChild(styleElement);
+	}
+
+	styleElement.textContent = `
+		html, body, #app, main, div, span, p, input, textarea, [class*="svelte-"] {
+			font-size: ${percent}rem !important;
+//			transition: font-size 0.01s ease-out !important;
+		}
+
+	    [class*="navigation"], [class*="navigation"] *, 
+		.navigation, .navigation * {
+			font-size: 11px !important; 
+			transition: none !important;
+		}
+		[class*="settingsTab"], [class*="settingsTab"] *,
+		.settingsTab, .settingsTab * {
+			font-size: 15px !important; 
+			transition: none !important;
+		}
+
+		i, svg, img, .icon {
+			transition: none !important;
+		}
+
+		[class*="info"], .info * {
+			font-size: 24px !important; 
+			transition: none !important;
+		}
+
+		[class*="header"], {
+			font-size: 16px !important; 
+			transition: none !important;
+		}
+	`;
+	localStorage.setItem('max-font-scale', percent.toString());
+} //*/
+
+////////////////////////////////////////
+////////////////////////////////////////
+
 webFrame.executeJavaScript(scriptToInject); // видео на паузу
 //webFrame.executeJavaScript(imageFullscreenScript); // разрешим картинки в fullScreen
 
@@ -144,6 +200,7 @@ if (process.contextIsolated) {
 			//*/
 		});
 		//console.info('--- Preload Script Active ---'); // для отладки
+
 		/////////////////////////////////////////////////
 		// при клике на картинку/видео врубаем fullscreen
 		const observer = new MutationObserver(() => {
@@ -155,6 +212,35 @@ if (process.contextIsolated) {
 			observer.observe(document.body, { childList: true, subtree: true });
 		});//*/
 		///////////////////////////////////////////
+
+/*		// применяем настройки шрифтов при загрузке страницы
+		window.addEventListener('DOMContentLoaded', () => {
+			if (currentFontPercent != 1) applyMaxFontSmooth(currentFontPercent);
+		});
+
+		// слушатель клавиш Ctrl + PgUp/PgDn/Home
+		window.addEventListener('keydown', (e) => {
+			if (e.ctrlKey) {
+				if (e.key === '=' || e.key === 'PageUp') {
+					e.preventDefault();
+					currentFontPercent += 0.1;
+					if (currentFontPercent > 2) currentFontPercent = 2;
+					applyMaxFontSmooth(currentFontPercent);
+				} else if (e.key === 'PageDown') {
+					e.preventDefault();
+					currentFontPercent -= 0.1;
+					if (currentFontPercent < 0.5) currentFontPercent = 0.5;
+					applyMaxFontSmooth(currentFontPercent);
+				} else if (e.key === 'Home') {
+					e.preventDefault();
+					currentFontPercent = 1;
+					const el = document.getElementById('electron-font-smooth-override');
+					if (el) el.remove();
+    			}
+ 			}
+		});//*/
+		///////
+
 	} catch (error) {
 		console.error(error);
 	}

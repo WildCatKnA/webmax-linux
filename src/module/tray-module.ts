@@ -13,6 +13,9 @@ const OVERLAY     = path.join(app.getAppPath(), "assets/", "overlay.png");
 const ICON_ABOUT  = path.join(app.getAppPath(), "assets/", /*process.platform === 'win32'? "applogo.ico" :*/ "applogo.png");
 const MENU_HIDE   = path.join(app.getAppPath(), "assets/", "hide.png");
 const MENU_ABOUT  = path.join(app.getAppPath(), "assets/", "about.png");
+const MENU_ZOOM   = path.join(app.getAppPath(), "assets/", "zoom.png");
+const MENU_ZOOM_P = path.join(app.getAppPath(), "assets/", "zoom-plus.png");
+const MENU_ZOOM_M = path.join(app.getAppPath(), "assets/", "zoom-minus.png");
 const MENU_QUIT   = path.join(app.getAppPath(), "assets/", "quit.png");
 const ttMAX		  = "MAX";
 
@@ -34,6 +37,42 @@ export default class TrayModule extends Module {
 				label: "Показать/Cкрыть",
 				icon: MENU_HIDE,
 				click: () => this.onClickShowHide()
+			},
+
+			{ type: 'separator' },
+
+			{
+				label: "Масштаб",
+				icon: MENU_ZOOM,
+				submenu: [
+					{
+						label: "Увеличить",
+						icon: MENU_ZOOM_P,
+						click: () => {
+							if (this.window.webContents.getZoomFactor() < 3)
+								this.window.webContents.zoomLevel += 1
+						}
+					},
+
+					{
+						label: "Уменьшить",
+						icon: MENU_ZOOM_M,
+						click: () => {
+							if (this.window.webContents.getZoomFactor() > 0.5)
+								this.window.webContents.zoomLevel -= 1
+						}
+					},
+
+					{ type: 'separator' },
+
+					{
+						label: "По умолчанию",
+						icon: MENU_ZOOM,
+						click: () => {
+							this.window.webContents.setZoomLevel(0)
+						}
+					}
+				]
 			},
 
 			{ type: 'separator' },

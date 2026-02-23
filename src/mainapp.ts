@@ -1,4 +1,4 @@
-import { app, session, desktopCapturer, BrowserWindow, nativeImage, ipcMain, shell } from "electron";
+import { app, session, desktopCapturer, BrowserWindow, nativeImage, nativeTheme, ipcMain, shell } from "electron";
 import ChromeVersionFix from "./fix/chrome-version-fix";
 import Electron21Fix from "./fix/electron-21-fix";
 import HotkeyModule from "./module/hotkey-module";
@@ -57,11 +57,18 @@ export default class MainApp {
 			height: 800,
 			minWidth: 800,
 			minHeight: 600,
-			backgroundColor: "#25262d",
-//			transparent: true,
-//			useContentSize: true,//false
+			backgroundColor: nativeTheme.shouldUseDarkColors ? "#25262d" : "#ffffff",
 			show: false,
 			autoHideMenuBar: true,
+
+			// настройки кастомного бара:
+/*			titleBarStyle: 'hidden',
+			titleBarOverlay: {
+				color: '#1a1a1a',       // фон области кнопок
+				symbolColor: '#ffffff', // кнопки (свернуть, закрыть)
+				height: 40              // высота области кнопок
+			},//*/
+
 			webPreferences: {
 				preload: path.join(__dirname, 'preload.js'),
 				spellcheck: false,
@@ -70,6 +77,8 @@ export default class MainApp {
 				sandbox: false
 			}
 		});
+//		this.window.loadFile(path.join(__dirname, 'index.html'));
+//		this.window.loadFile('index.html');
 
 //		this.window.webContents.openDevTools(); // для отладки
 
@@ -141,7 +150,7 @@ export default class MainApp {
 		// уведомления, доступ к медиа и микрофону, если возможно, и прочее
 		// types 'geolocation' | 'unknown' | 'clipboard-read' | 'clipboard-sanitized-write' |
 		// 'display-capture' | 'mediaKeySystem' | 'midi' | 'midiSysex' | 'pointerLock' | 'fullscreen' |
-		// 'openExternal' | 'window-placement' and 'audioCapture' 
+		// 'openExternal' | 'window-placement' | 'audioCapture' 
 		session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
 			const allowedPermissions = ['fullscreen', 'notifications', 'media', 'audioCapture', 'clipboard-read', 'clipboard-sanitized-write']; 
 			if (allowedPermissions.includes(permission)) {
@@ -152,27 +161,22 @@ export default class MainApp {
 		});
 
 		///////////////////////////////////////////////
-		// разрешение  для  трансляции  экрана (electron-22  не  позволяет  выбрать
-		// источник, т.к. передается один аргумент, поэтому будем вещать весь экран
-		// вариант 1 - просто демонстрируем весь экран - пока оставим...
-/*		session.defaultSession.setDisplayMediaRequestHandler(
-			(request, callback) => {
-				desktopCapturer.getSources({ types: ["screen"] }).then((sources) => {
-					callback({ video: sources[0], audio: "loopback" });
-				});
-			} //, { useSystemPicker: true } // выбор источника - не работает в electron-22
-		);//*/
-
-		///////////////////////////////////////////////
-		// вариант 2 - пробуем выбрать, что будем транслировать...
+		// пробуем выбрать, что будем транслировать...
 		// (плюс файлы picker.html, picker.js и доп.код в preload)
-		// кажись, теперь получилось =)
 		session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
+		let myScheme = nativeTheme.shouldUseDarkColors ? 'dark' : 'light';
 			desktopCapturer.getSources({ 
 				types: ['screen', 'window'],
 				fetchWindowIcons: true, 
 				thumbnailSize: { width: 300, height: 200 } 
-			}).then((sources) => {
+			}).then(async (sources) => {
+
+				const colorScheme = await this.window.webContents.executeJavaScript(
+					// пытаемся понять, "темная" или "сваетлая" у нас тема...
+					"document.documentElement.getAttribute('data-color-scheme')"
+				).catch(() => //'dark') || 'dark'; // если ошибка - ставим dark
+							// или же возьмём системную тему
+							myScheme) || myScheme;
 
 				pickerWin = new BrowserWindow({
 					width: 800,
@@ -181,11 +185,12 @@ export default class MainApp {
 					modal: true,
 					title: "MAX - источники",
 					icon: path.join(app.getAppPath(), "assets/", process.platform === 'win32' ? "app.ico":"mainapp.png"),
-					backgroundColor: '#25262d',
+					backgroundColor: colorScheme === 'dark' ? '#25262d' : '#ffffff', // Меняем фон самого окна
 					autoHideMenuBar: true,
 					webPreferences: {
 						preload: path.join(__dirname, 'preload.js'),
-						contextIsolation: true/*,
+						contextIsolation: true
+						/*,
 						// вроде не актуально, но пока оставим
 						sandbox: false, // чтобы preload зацепился
 						webSecurity: false // разрешаем локальный контент
@@ -193,7 +198,8 @@ export default class MainApp {
 					}
 				});
 
-				pickerWin.loadFile(path.join(__dirname, 'picker.html'));
+				//pickerWin.loadFile(path.join(__dirname, 'picker.html'));
+				pickerWin.loadFile(path.join(__dirname, 'picker.html'), { query: { theme: colorScheme } });
 
 				// готовность окна выбора
 				ipcMain.once('picker-ready', () => {
@@ -244,9 +250,8 @@ export default class MainApp {
 		this.window.setMenu(null);
 
 		this.window.loadURL('https://web.max.ru/', {
-//			userAgent: USER_AGENT,
 			extraHeaders: "pragma: no-cache\n" // а оно надо?
-		});
+		}); //*/
 
 		this.moduleManager.beforeLoad();
 		this.moduleManager.onLoad();
@@ -312,6 +317,14 @@ export default class MainApp {
 			this.window.setFullScreen(false);
 		});//*/
 
+		this.window.on('resize', () => {
+			this.moduleManager.onQuit();
+		});
+
+		this.window.on('move', () => {
+			this.moduleManager.onQuit();
+		});
+		//*/
 
 		// для contextIsolation = false (по сути, не требуется)
 		ipcMain.on('notification-click', () => {
@@ -336,7 +349,6 @@ export default class MainApp {
 			const win = BrowserWindow.fromWebContents(event.sender);
 			if (win) {
 				win.setFullScreen(isActive);
-//				win.setMenuBarVisibility(!isActive);
 			}
 		}); /*/
 		///////////////////////////////////////////

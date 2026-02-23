@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background-color: #2c2c2c;
+      color: white;
+    }
+
+    /* наша кастомная панель заголовка */
+    .title-bar {
+      /* позволяет перетаскивать окно */
+      -webkit-app-region: drag;
+      
+      height: 40px; /* Должна совпадать с высотой в main.js */
+      display: flex;
+      align-items: center;
+      padding-left: 20px;
+      background-color: #1a1a1a;
+    }
+
+    .content {
+      padding: 20px;
+    }
+
+    /* интерактивные элементы внутри шапки должны быть кликабельными */
+    .search-input {
+      -webkit-app-region: no-drag;
+      margin-left: 20px;
+      background: #333;
+      border: 1px solid #444;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 4px;
+    }
+
+    button {
+      -webkit-app-region: no-drag;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- этот блок заменяет стандартный заголовок -->
+  <header class="title-bar">
+    <div class="app-logo">🚀 My App</div>
+    <input type="text" class="search-input" placeholder="Поиск...">
+  </header>
+
+  <main class="content">
+    <h1>Контент окна</h1>
+    <p>Системные кнопки справа вверху нарисованы самим Windows, но фон под ними совпадает с нашим .title-bar</p>
+    <button onclick="changeTheme()">Сменить цвет темы</button>
+  </main>
+
+  <script>
+    // пример динамического изменения цвета (нужен IPC, если делать через main)
+    function changeTheme() {
+       console.log('Здесь можно отправить сигнал в main.js для setTitleBarOverlay');
+    }
+  </script>
+</body>
+</html>
