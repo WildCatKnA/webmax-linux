@@ -1,6 +1,4 @@
-import { app, session, desktopCapturer, BrowserWindow, nativeImage, nativeTheme, ipcMain, shell } from "electron";
-import ChromeVersionFix from "./fix/chrome-version-fix";
-import Electron21Fix from "./fix/electron-21-fix";
+import { app, session, desktopCapturer, BrowserWindow, nativeImage, net, clipboard, nativeTheme, ipcMain, shell } from "electron";
 import HotkeyModule from "./module/hotkey-module";
 import ModuleManager from "./module/module-manager";
 import TrayModule from "./module/tray-module";
@@ -38,9 +36,27 @@ const path = require('path');
 const fs = require('fs');
 const downloadsStore = new Store();
 let pickerWin: BrowserWindow | null = null;
-let viewerWin: BrowserWindow | null = null;
+//let viewerWin: BrowserWindow | null = null;
+let isHidden = false;
+let saveTimeout;
+let bckGround;//: string;
 
-//const USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.9999.0 Safari/537.36";
+//////////////////////////////////
+const checkArchitecture = () => {
+	const isApp32 = process.arch === 'ia32';
+	const isOs64 = process.env.PROCESSOR_ARCHITEW6432 !== undefined || process.arch === 'x64' || process.env.PROCESSOR_ARCHITECTURE === 'AMD64';
+
+	if (isApp32 && isOs64) {
+		dialog.showMessageBoxSync({
+			type: 'warning',
+			title: 'MAX',
+			message: 'Вы запустили 32-битную версию приложения на 64-битной системе.',
+			detail: 'Для лучшей производительности рекомендуется использовать x64 версию.',
+			buttons: ['Понятно']
+        });
+    }
+};
+////////////////////////////////
 
 export default class MainApp {
 	
@@ -48,8 +64,10 @@ export default class MainApp {
 	private readonly moduleManager: ModuleManager;
 	public quitting = false;
 	public openFldr = true;
+	private cssKey: string | null = null;
 
 	constructor() {
+		bckGround = nativeTheme.shouldUseDarkColors ? "#25262d" : "#ffffff";
 		this.window = new BrowserWindow({
 			title: "MAX",
 			icon: path.join(app.getAppPath(), "assets/", process.platform === 'win32' ? "app.ico":"mainapp.png"),
@@ -57,17 +75,9 @@ export default class MainApp {
 			height: 800,
 			minWidth: 800,
 			minHeight: 600,
-			backgroundColor: nativeTheme.shouldUseDarkColors ? "#25262d" : "#ffffff",
+			backgroundColor: bckGround,
 			show: false,
 			autoHideMenuBar: true,
-
-			// настройки кастомного бара:
-/*			titleBarStyle: 'hidden',
-			titleBarOverlay: {
-				color: '#1a1a1a',       // фон области кнопок
-				symbolColor: '#ffffff', // кнопки (свернуть, закрыть)
-				height: 40              // высота области кнопок
-			},//*/
 
 			webPreferences: {
 				preload: path.join(__dirname, 'preload.js'),
@@ -77,24 +87,39 @@ export default class MainApp {
 				sandbox: false
 			}
 		});
-//		this.window.loadFile(path.join(__dirname, 'index.html'));
-//		this.window.loadFile('index.html');
 
 //		this.window.webContents.openDevTools(); // для отладки
 
 		// костыль в виде CSS-кода для  НОРМАЛЬНОГО выравнивания содержимого по высоте окна
 		// (видимо, electron-21 и ниже криво обрабатывают сие безарбузие,  рисуя скроллбары
 		// поверх мах-интерфейсовых)
-		if (process.versions.electron.startsWith('21.')) {
-			this.window.webContents.insertCSS('.aside, .openedChat { height: 100vh; display: flex; flex-direction: column; }  ');
-		}
+//		if (process.versions.electron.startsWith('21.')) {
+//			this.window.webContents.insertCSS('.aside, .openedChat { height: 100vh; display: flex; flex-direction: column; }  ');
+//		}
+
+
+////////////////////////////////////////////////////////////////////////////////
+// тут пытаемся "подправить" фон в просмотрщике...
+
+// вариант 1 - просто фон без эффектов (только черная подложка под видео)
+this.window.webContents.insertCSS(`
+*:focus { outline: none !important; box-shadow: none !important; }
+[class*="mover"] { backdrop-filter: blur(15px) saturate(140%) !important; -webkit-backdrop-filter: blur(12px) saturate(140%) !important; }
+[class*="media"] { background: #000000 !important; }
+[class*="videoLayer"] video { background: #000000; !important; border: none !important; }
+`).catch(err => console.error('CSS Injection failed:', err)); //*/
+
+// вариант 2 - "размазываем" фон (эффект стекла)
+/*this.window.webContents.insertCSS(`
+ [class*="mover"] { backdrop-filter: blur(12px) saturate(140%) !important; -webkit-backdrop-filter: blur(12px) saturate(140%) !important; }
+ [class*="videoLayer"] video { background: #000 !important; position: relative !important; }
+`).catch(err => console.error('CSS Injection failed:', err)); //*/
+////////////////////////////////////////////////////////////////////////////////
 
 		this.moduleManager = new ModuleManager([
-			new Electron21Fix()
-			, new HotkeyModule(this, this.window)
+			new HotkeyModule(this, this.window)
 			, new TrayModule(this, this.window)
 			, new WindowSettingsModule(this, this.window)
-			, new ChromeVersionFix(this)
 		]);
 
 		this.window.on("show", () => {
@@ -131,20 +156,9 @@ export default class MainApp {
 	
 
 	public init() {
-//		app.setAppUserModelId('webmax');
 		app.setAppUserModelId('ru.oneme.electron'); // прикинемся "ветошью"
 		app.setAsDefaultProtocolClient("max");
 
-		///////////////////////////////////////////////
-		// убираем electron и наше  приложение из UserAgent
-		// (прикидываемся "ветошью", т.е. мы - а-ля Chrome)
-		// надо оно или нет? хз
-		/*
-		const defaultUserAgent = new BrowserWindow({ show: false }).webContents.getUserAgent();
-		let usSTR = defaultUserAgent.replace(/Electron\/[\d.]+\s/, '');  
-		usSTR = usSTR.replace(/webmax\/[\d\.\-]+/g, '');
-		const cleanUserAgent = usSTR;
-		app.userAgentFallback = cleanUserAgent;//*/
 
 		///////////////////////////////////////////////
 		// уведомления, доступ к медиа и микрофону, если возможно, и прочее
@@ -214,14 +228,14 @@ export default class MainApp {
 				// выбор пользователя
 				ipcMain.once('source-selected', (_event, sourceId) => {
 					if (!sourceId) {
-//						callback({}); // !!!вызываем при закрытии окна, иначе ошибка
+//						callback({}); // !!!вызываем при закрытии окна, не сейчас! иначе ошибка
 					} else {
 						const selected = sources.find(s => s.id === sourceId);
 						if (selected) {
 							// выбранный источник
 							callback({ video: selected, audio: 'loopback' });
 						} else {
-//							callback({}); // !!!вызываем при закрытии окна, иначе ошибка
+//							callback({}); // !!!вызываем при закрытии окна, не сейчас! иначе ошибка
 						}
 					}
 
@@ -233,7 +247,7 @@ export default class MainApp {
 
 				pickerWin.on('closed', () => {
 				try {
-					callback({}); // !!!вот здесь и вызываем
+					callback({}); // !!!вот теперь здесь и вызываем
 					} catch (e) {
 						// игнорируем, если callback уже был вызван ранее
 					}
@@ -243,7 +257,8 @@ export default class MainApp {
 			});
 		}); //*/
 		///////////////////////////////////////////////
-		
+		checkArchitecture();
+		///////////////////////////////////////////////
 		this.makeLinksOpenInBrowser();
 		this.registerListeners();
 
@@ -257,7 +272,9 @@ export default class MainApp {
 		this.moduleManager.onLoad();
 		///////////////////////////////////////////////
 
-		this.window.show();
+		//isHidden = process.argv.includes('--hidden');
+		isHidden = process.argv.some(arg => arg.toLowerCase() === '--hidden');
+		if (!isHidden) this.window.show();
 
 	}
 
@@ -270,7 +287,13 @@ export default class MainApp {
 		this.moduleManager.onQuit();
 		app.quit();
 	}
-	
+
+	public saveWinState() {
+		clearTimeout(saveTimeout);
+		saveTimeout = setTimeout(() => {
+       		this.moduleManager.onQuit();
+		}, 500);
+	}
 
 	// если контент - видос или изображение, то попытаемся сохранить,
 	// в противном случае: если протокол https - открываем ссылку в браузере
@@ -318,13 +341,15 @@ export default class MainApp {
 		});//*/
 
 		this.window.on('resize', () => {
-			this.moduleManager.onQuit();
+			//this.moduleManager.onQuit();
+			this.saveWinState();
 		});
 
 		this.window.on('move', () => {
-			this.moduleManager.onQuit();
+			//this.moduleManager.onQuit();
+			this.saveWinState();
 		});
-		//*/
+		// */
 
 		// для contextIsolation = false (по сути, не требуется)
 		ipcMain.on('notification-click', () => {
@@ -346,41 +371,38 @@ export default class MainApp {
 		// махинации с просмотрщиком
 
 		ipcMain.on('toggle-max-viewer', (event, isActive) => {
+//			console.log('toggle-max-viewer');
 			const win = BrowserWindow.fromWebContents(event.sender);
 			if (win) {
 				win.setFullScreen(isActive);
 			}
-		}); /*/
-		///////////////////////////////////////////
-/*		ipcMain.on('open-viewer', (event, { url, type }) => {
-			console.info("мы в open-viewer");
-			if (viewerWin && !viewerWin.isDestroyed()) {
-				viewerWin.close();
+		}); // */
+		//////////////////////////////////////////////////////////
+		
+
+		//////////////////////////////////////////////////////////
+		// копирование картинки по нажатию ПКМ (до появления меню)
+		ipcMain.on('copy-data-url-to-clipboard', (event, dataUrl: string) => {
+			const image = nativeImage.createFromDataURL(dataUrl);
+			if (!image.isEmpty()) {
+				clipboard.writeImage(image);
 			}
+		});//*/
 
-			viewerWin = new BrowserWindow({
-				fullscreen: true,
-				backgroundColor: '#000000',
-				frame: false,
-				transparent: false,
-				webPreferences: {
-					preload: path.join(__dirname, 'preload.js'),
-					contextIsolation: true
-				}
-			});
+		///////////////////////////////////////////
+		// допиливаем вставку через меню web.max.ru
+		// (через меню не вставлялись картинки)
+		ipcMain.on('force-ctrl-v', (event) => {
+			const wc = event.sender;
+			const modifier = process.platform === 'darwin' ? 'meta' : 'control';
 
-			// HTML файл просмотрщика
-			viewerWin.loadFile(path.join(__dirname, 'viewer.html'));
-
-			viewerWin.webContents.on('did-finish-load', () => {
-				viewerWin?.webContents.send('load-content', { url, type });
-			});
-
-			// закрытие по клику мимо или кнопке
-			ipcMain.once('close-viewer', () => {
-				viewerWin?.close();
-			});
-		});// */
+			setTimeout(() => {
+				// тупо имитируем Ctrl+V (или Meta+V для mac)
+				wc.sendInputEvent({ type: 'keyDown', modifiers: [modifier], keyCode: 'v' });
+				wc.sendInputEvent({ type: 'char', modifiers: [modifier], keyCode: 'v' });
+				wc.sendInputEvent({ type: 'keyUp', modifiers: [modifier], keyCode: 'v' });
+			}, 50); 
+		}); //*/
 
 		///////////////////////////////////////////
 		// спиздил из официальной махи и подогнал под свои нужды...

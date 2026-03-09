@@ -24,7 +24,7 @@ export default class WindowSettingsModule extends Module {
 		// и положение окна не  учитывают заголовок).
 		if (process.platform === 'linux') {
 			this.window.setBounds({ 
-				x: wb.x - 2, y: wb.y - 32, width: wb.width, height: wb.height 
+				x: wb.x, y: wb.y - 32, width: wb.width, height: wb.height 
 			}); //*/
 		} else this.window.setBounds(wb);
 

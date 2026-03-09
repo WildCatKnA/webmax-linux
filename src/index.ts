@@ -2,6 +2,7 @@ import { app } from 'electron';
 
 const path = require('path');
 const fs = require('fs');
+const { systemPreferences } = require('electron');
 
 /////////////////////////////////////////////////////////////////
 // переключаем пути к данным, если рядом с исполняемым файлом 
@@ -17,25 +18,38 @@ function isWritable(dir) {
 	}
 }
 
-const exeDir = path.dirname(app.getPath('exe'));
+// проверка, запускаемся ли мы в Portable-режиме (кроме macos)
+if (process.platform !== 'darwin') {
+	const exeDir = path.dirname(app.getPath('exe'));
 
-if (fs.existsSync(path.join(exeDir, 'is_portable.txt'))) {
-	if (isWritable(exeDir)) {
-		// переключаемся на Portable
-		const portableDataPath = path.join(exeDir, 'data');
-		app.setPath('userData', portableDataPath);
-		app.setPath('sessionData', portableDataPath);
-		app.commandLine.appendSwitch('user-data-dir', portableDataPath);
-	} else {
-		// облом, оставляем %AppData%
-		console.error("Нет прав на запись в папку приложения. Используется стандартный путь.");
-
+	if (fs.existsSync(path.join(exeDir, 'is_portable.txt'))) {
+		if (isWritable(exeDir)) {
+			// переключаемся на Portable
+			const portableDataPath = path.join(exeDir, 'data');
+			app.setPath('userData', portableDataPath);
+			app.setPath('sessionData', portableDataPath);
+			app.commandLine.appendSwitch('user-data-dir', portableDataPath);
+		} else {
+			// облом, оставляем %AppData%
+			console.error("Нет прав на запись в папку приложения. Используется стандартный путь.");
+		}
 	}
 }
 
-
-// проверяемся
-//checkPortableMode();
+// пробуем выбить разрешение трансляции экрана при старте (macos)
+if (process.platform === 'darwin') {
+	// в Catalina это может вернуть denied или not-determined
+	const status = systemPreferences.getMediaAccessStatus('screen');
+	console.log("getMediaAccessStatus = " + status);
+	if (status !== 'granted') {
+		// ВАЖНО: просто проверка статуса иногда не вызывает окно запроса.
+		// нужно вызвать захват хотя бы одного кадра.
+		const { desktopCapturer } = require('electron');
+		desktopCapturer.getSources({ types: ['screen'] }).then(sources => {
+			console.log("Запрос прав инициирован через getSources");
+		});
+	}
+}
 
 /////////////////////////////////////////////////////////////////
 import MainApp from './mainapp';

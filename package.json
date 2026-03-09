@@ -1,18 +1,18 @@
 {
 	"name": "webmax",
 	"productName": "webmax",
-	"version": "1.0.4-4",
+	"version": "1.0.4-8",
 	"description": "WebMax for Linux (unofficial)",
 	"main": "dist/index.js",
 	"scripts": {
-		"dist":    "tsc && cp src/picker.html dist/ && cp src/picker.js dist/ ",
-		"watch":   "tsc -w",
-		"lint":    "eslint -c .eslintrc --ext .ts ./src",
-		"start":   "npm run dist && electron .",
-		"build":   "npm run dist && electron-builder",
-		"linux":   "npm run dist && electron-builder --linux --x64",
+		"dist": "tsc && cp src/picker.html dist/ && cp src/picker.js dist/ ",
+		"watch": "tsc -w",
+		"lint": "eslint -c .eslintrc --ext .ts ./src",
+		"start": "npm run dist && electron .",
+		"build": "npm run dist && electron-builder",
+		"linux": "npm run dist && electron-builder --linux --x64",
 		"windows": "npm run dist && electron-builder --windows --x64",
-		"macos":   "npm run dist && electron-builder --mac --x64"
+		"macos": "npm run dist && electron-builder --mac --x64"
 	},
 	"author": "wildcat",
 	"license": "MIT",
@@ -21,10 +21,11 @@
 	},
 	"devDependencies": {
 		"electron": "^22.3.27",
-		"electron-builder": "^26.4.0",
-		"typescript": "^4.8.4"
+		"electron-builder": "^24.13.3",
+		"typescript": "^5.0"
 	},
 	"build": {
+		"electronLanguages": ["ru", "en", "en-GB", "en-US"],
 		"asar": true,
 		"win": {
 			"appId": "WebMax Desktop",
@@ -32,14 +33,17 @@
 			"target": [
 				{
 					"target": "zip",
-					"arch": ["x64", "ia32"]
+					"arch": [
+						"x64",
+						"ia32"
+					]
 				}
 			]
 		},
-
 		"mac": {
 			"appId": "WebMax Desktop",
 			"icon": "./icon.icns",
+			"hardenedRuntime": true,
 			"entitlements": "./entitlements.mac.plist",
 			"entitlementsInherit": "./entitlements.mac.plist",
 			"extendInfo": {
@@ -55,7 +59,6 @@
 				"zip"
 			]
 		},
-
 		"linux": {
 			"executableName": "webmax",
 			"appId": "WebMax Desktop",
@@ -66,7 +69,6 @@
 				"AppImage"
 			]
 		},
-
 		"directories": {
 			"output": "./build"
 		},

@@ -6,20 +6,14 @@ const { dialog } = require('electron');
 
 
 function overrideNotification() {
-    window.Notification = class extends Notification {
-        constructor(title: string, options: NotificationOptions) {
-            super(title, options);
-            this.onclick = _event => ipcRenderer.send("notification-click");
-        }
-    }
+	window.Notification = class extends Notification {
+		constructor(title: string, options: NotificationOptions) {
+			super(title, options);
+			this.onclick = _event => ipcRenderer.send("notification-click");
+		}
+	}
 }
 
-function handleChromeVersionBug() {
-    window.addEventListener("DOMContentLoaded", () => {
-        if (document.getElementsByClassName("landing-title version-title").length != 0)
-            ipcRenderer.send("chrome-version-bug");
-    });
-}
 
 //////////////////////////////////////////////////////
 // попытка остановить автовоспроизведение видео в MAX.
@@ -57,100 +51,63 @@ const scriptToInject = `
 
 ///////////////////////////////////////////
 
-// попытаемся развернуть картинки во весь экран
-// вариант 1 - всё криво, но картинку
-// разворачивает (по двойному клику ЛКМ)
-
-///*
-const imageFullscreenScript = `
-document.addEventListener('dblclick', (e) => {
-	const target = e.target;
-	if (target.tagName === 'IMG') {
-		if (!document.fullscreenElement)
-		{
-			target.requestFullscreen().catch(err => {
-				target.parentElement.requestFullscreen();
-			});
-		} else {
-			document.exitFullscreen();
-		}
-	}
-}, true);
-`;//*/
-
-// вариант 2 - при клике на картинку или
-// видео должно разворачиваться
-/*const imageFullscreenScript = `
-document.addEventListener('click', (e) => {
-	const target = e.target;
-	if (target.tagName === 'IMG' && target.closest('.message-content')) {
-		window.electronAPI.openViewer({ url: target.src, type: 'image' });
-	}
-
-//	if (target.tagName === 'VIDEO') {
-//		window.electronAPI.openViewer({ url: target.src, type: 'video' });
-//	}
-}, true);
-`;//*/
-
-
-
 ///////////////////////////////////////////
-///////////////////////////////////////////
-// Загружаем сохраненный масштаб или ставим 100%
-/*/
-let currentFontPercent = parseInt(localStorage.getItem('max-font-scale') || '1');
+// загружаем сохраненный масштаб шрифта или ставим по умолчанию
+let currentFontPercent = parseFloat(localStorage.getItem('max-font-scale') || '1');
 //let currentFontPercent = 1;
 
-function applyMaxFontSmooth(percent: number) {
-	const styleId = 'electron-font-smooth-override';
-	let styleElement = document.getElementById(styleId);
+function applyMaxFontSmooth(percent: number) { // Явно указываем : number
+    const styleId = 'electron-font-smooth-override';
+    let styleElement = document.getElementById(styleId);
 
-	if (!styleElement) {
-		styleElement = document.createElement('style');
-		styleElement.id = styleId;
-		document.head.appendChild(styleElement);
-	}
+    if (!styleElement) {
+        styleElement = document.createElement('style');
+        styleElement.id = styleId;
+        document.head.appendChild(styleElement);
+    }
 
-	styleElement.textContent = `
-		html, body, #app, main, div, span, p, input, textarea, [class*="svelte-"] {
-			font-size: ${percent}rem !important;
-//			transition: font-size 0.01s ease-out !important;
-		}
+    // типизируем объект с базовыми размерами
+    const baseSizes: Record<string, number> = {
+        bubble: 14,
+        markdown: 17,
+        tag: 11,
+        label: 12
+    };
 
-	    [class*="navigation"], [class*="navigation"] *, 
-		.navigation, .navigation * {
-			font-size: 11px !important; 
-			transition: none !important;
-		}
-		[class*="settingsTab"], [class*="settingsTab"] *,
-		.settingsTab, .settingsTab * {
-			font-size: 15px !important; 
-			transition: none !important;
-		}
+    // с этим TS не будет ругаться на умножение
+    const bubbleSize = (baseSizes.bubble * percent).toFixed(1);
+    const markdownSize = (baseSizes.markdown * percent).toFixed(1);
+    const tagSize = (baseSizes.tag * percent).toFixed(1);
+    const labelSize = (baseSizes.label * percent).toFixed(1);
 
-		i, svg, img, .icon {
-			transition: none !important;
-		}
+    const lhCoeff = 1.4;
 
-		[class*="info"], .info * {
-			font-size: 24px !important; 
-			transition: none !important;
-		}
+    styleElement.textContent = `
+        :root {
+            --font-bubble-description-size: ${bubbleSize}px !important;
+            --font-bubble-description-strong-size: ${bubbleSize}px !important;
+            --font-bubble-description-line-height: ${(Number(bubbleSize) * lhCoeff).toFixed(1)}px !important;
 
-		[class*="header"], {
-			font-size: 16px !important; 
-			transition: none !important;
-		}
-	`;
-	localStorage.setItem('max-font-scale', percent.toString());
+            --font-markdown-message-base-size: ${markdownSize}px !important;
+            --font-markdown-message-line-height: ${(Number(markdownSize) * lhCoeff).toFixed(1)}px !important;
+
+            --font-bubble-tag-size: ${tagSize}px !important;
+            --font-bubble-label-strong-size: ${labelSize}px !important;
+            --font-bubble-label-size: ${labelSize}px !important;
+
+            --font-tag-size: 11px !important;
+            --font-body-size: 16px !important;
+            --font-label-size: 12px !important;
+            --font-description-size: 13px !important;
+        }
+    `;
+    
+    localStorage.setItem('max-font-scale', percent.toString());
 } //*/
 
 ////////////////////////////////////////
-////////////////////////////////////////
 
 webFrame.executeJavaScript(scriptToInject); // видео на паузу
-//webFrame.executeJavaScript(imageFullscreenScript); // разрешим картинки в fullScreen
 
 //////////////////////////////////////////////
 // спиздил у официальной махи, чуть подковырял
@@ -166,6 +123,25 @@ if (process.contextIsolated) {
 				subs.get(createKey(fileId, messageId, chatId))?.onProgress({ downloadedSize, totalSize });
 			}
 		);
+
+		/////////////////
+		// обрабатываем опции шрифта из tray-меню
+		ipcRenderer.on('change-font-size', (_event, action) => {
+			if (action === 'up') {
+				currentFontPercent = Math.min(currentFontPercent + 0.05, 1.5);
+				applyMaxFontSmooth(currentFontPercent);
+			} else if (action === 'down') {
+				currentFontPercent = Math.max(currentFontPercent - 0.05, 0.5);
+				applyMaxFontSmooth(currentFontPercent);
+			} else if (action === 'reset') {
+				currentFontPercent = 1;
+				const el = document.getElementById('electron-font-smooth-override');
+				if (el) el.remove();
+				localStorage.setItem('max-font-scale', '1');
+			}
+		});		
+		/////////////////
+
 
 		contextBridge.exposeInMainWorld("electron", {
 			downloadFile: ({ url, fileId, messageId, chatId, fileName }, onProgress) => {
@@ -192,19 +168,14 @@ if (process.contextIsolated) {
 			// уведомления о сообщениях
 			sendNotification: (data: any) => ipcRenderer.send('notify-me', data)
 
-/*			// просмотрщик картинок/видео
-			,
-			openViewer: (data: { url: string, type: 'image' | 'video' }) => ipcRenderer.send('open-viewer', data),
-			onLoadContent: (cb: any) => ipcRenderer.on('load-content', (_e, data) => cb(data)),
-			closeViewer: () => ipcRenderer.send('close-viewer')
-			//*/
 		});
-		//console.info('--- Preload Script Active ---'); // для отладки
 
 		/////////////////////////////////////////////////
 		// при клике на картинку/видео врубаем fullscreen
 		const observer = new MutationObserver(() => {
 			const mover = document.querySelector('[class*="mover"]');
+//			const mover = document.querySelector('dialog[class*="container"]');
+//			console.log('мы в прелоадере');
 			ipcRenderer.send('toggle-max-viewer', !!mover);
 		});
 
@@ -213,22 +184,26 @@ if (process.contextIsolated) {
 		});//*/
 		///////////////////////////////////////////
 
-/*		// применяем настройки шрифтов при загрузке страницы
+
+		///////////////////////////////////////////
+
+
+		// применяем настройки шрифтов при загрузке страницы
 		window.addEventListener('DOMContentLoaded', () => {
 			if (currentFontPercent != 1) applyMaxFontSmooth(currentFontPercent);
-		});
+		});//*/
 
 		// слушатель клавиш Ctrl + PgUp/PgDn/Home
 		window.addEventListener('keydown', (e) => {
 			if (e.ctrlKey) {
-				if (e.key === '=' || e.key === 'PageUp') {
+				if (e.key === 'PageUp') {
 					e.preventDefault();
-					currentFontPercent += 0.1;
-					if (currentFontPercent > 2) currentFontPercent = 2;
+					currentFontPercent += 0.05;
+					if (currentFontPercent > 1.5) currentFontPercent = 1.5;
 					applyMaxFontSmooth(currentFontPercent);
 				} else if (e.key === 'PageDown') {
 					e.preventDefault();
-					currentFontPercent -= 0.1;
+					currentFontPercent -= 0.05;
 					if (currentFontPercent < 0.5) currentFontPercent = 0.5;
 					applyMaxFontSmooth(currentFontPercent);
 				} else if (e.key === 'Home') {
@@ -239,34 +214,86 @@ if (process.contextIsolated) {
     			}
  			}
 		});//*/
-		///////
+
+
+		///////////////////////////////////////////////////
+		// махинации с копированием картинки по нажатию ПКМ
+		window.addEventListener('mousedown', (e: MouseEvent) => {
+			if (e.button !== 2) return;
+
+			const target = e.target as HTMLElement;
+			const img = target.closest('img') as HTMLImageElement | null;
+
+			if (img && img.complete) {
+				// копия картинки для обхода ограничений CORS, если нужно
+				const tempImg = new Image();
+				tempImg.crossOrigin = "anonymous"; 
+				tempImg.src = img.src;
+
+				tempImg.onload = () => {
+					const canvas = document.createElement('canvas');
+					canvas.width = tempImg.naturalWidth;
+					canvas.height = tempImg.naturalHeight;
+
+					const ctx = canvas.getContext('2d');
+					if (ctx) {
+						ctx.drawImage(tempImg, 0, 0);
+						const dataUrl = canvas.toDataURL('image/png');
+						ipcRenderer.send('copy-data-url-to-clipboard', dataUrl);
+					}
+				};
+
+				tempImg.onerror = () => {
+					// если через Canvas не вышло, пробуем старый метод
+					ipcRenderer.send('copy-image-to-clipboard', img.src);
+				};
+    		}
+		}, true);
+
+		////////////////////////////////////////////////////////////////////////
+		// здесь пляски с бубном и куртизатнками вокруг МАХовского контекстного
+		// меню по пунктику "Вставить", чтобы научить вставлять картинки
+
+		// глядим, чего под мышкой, прячем меню
+		window.addEventListener('mousedown', (e) => {
+			const target = e.target as HTMLElement;
+			const btn = target.closest('button.actionsMenuItem');
+			const title = btn?.querySelector('.title')?.textContent;
+
+			if (title === 'Вставить') {
+				const input = document.querySelector('[contenteditable="true"], textarea') as HTMLElement;
+				if (input) {
+					input.focus();
+				}
+			}
+		}, true);
+
+		window.addEventListener('click', (e) => {
+			const target = e.target as HTMLElement;
+			const btn = target.closest('button.actionsMenuItem');
+			const title = btn?.querySelector('.title')?.textContent;
+
+			if (title === 'Вставить') {
+				ipcRenderer.send('force-ctrl-v');
+				(window as any)._skipNextPaste = true;
+				setTimeout(() => (window as any)._skipNextPaste = false, 300);
+			}
+		}, true);
+
+		// если в буфере только текст - гасим его
+		window.addEventListener('paste', (e) => {
+			if ((window as any)._skipNextPaste) {
+				if (!e.clipboardData?.types.includes('Files')) {
+					e.stopImmediatePropagation();
+				}
+			}
+		}, true);
+		
+		////////////////////////////////////////////////////////////////////////
 
 	} catch (error) {
 		console.error(error);
 	}
-
-
-/*////////
-// попытска сделать собственный просмотрщик...
-window.addEventListener('click', (e: MouseEvent) => {
-  const target = e.target as HTMLElement;
-
-  // ищем клик по картинке (тег <img>)
-  if (target && target.tagName === 'IMG') {
-    const img = target as HTMLImageElement;
-    
-    // блокируем стандартное поведение браузера (если оно есть)
-    e.preventDefault();
-    e.stopPropagation();
-
-    // Отправляем сигнал в Main процесс
-    ipcRenderer.send('open-viewer', { 
-      url: img.src, 
-      type: 'image' 
-    });
-  }
-}, true); // true — чтобы поймать клик раньше скриптов самого сайта
-////////*/
 
 } else {
 //	window.electron = electronAPI;
@@ -279,7 +306,3 @@ contextBridge.exposeInMainWorld('electronAPI', {
 });
 
 overrideNotification();
-handleChromeVersionBug();
-
-
-

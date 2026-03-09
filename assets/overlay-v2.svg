@@ -8,7 +8,7 @@
 </linearGradient>
 </defs>
 
-<circle cx="50%" cy="50%" r="45%" fill="url(#myGradient)" stroke="#ffffffa0" stroke-width="5%" style="fill-rule:evenodd;"/>
-
+<circle cx="50%" cy="50%" r="40%" fill="url(#myGradient)" stroke="#fffffff0" stroke-width="5%" style="fill-rule:evenodd;"/>
+<text x="51%" y="70%" text-anchor="middle" font-family="sans-serif" font-size="9" font-weight="bold" fill="#fefefe" style="fill-rule:evenodd;">${count}</text>
 
 </svg>

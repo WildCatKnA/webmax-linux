@@ -66,7 +66,7 @@
 </g>
 
 <g id="unread">
-  <circle cx="50%" cy="50%" r="37%" fill="#101010" stroke="#d0d0d0ff" stroke-width="3%" style="fill-rule:evenodd;"/>
-  <text x="50.4%" y="67%" text-anchor="middle" font-family="sans-serif" font-size="17" font-weight="bold" fill="#fefefe" style="fill-rule:evenodd;">99</text>
+  <circle cx="50%" cy="50%" r="33%" fill="#803090" stroke="#fefefeff" stroke-width="3%" style="fill-rule:evenodd;"/>
+  <text x="50.4%" y="65%" text-anchor="middle" font-family="sans-serif" font-size="15" font-weight="bold" fill="#fefefe" style="fill-rule:evenodd;">${count}</text>
 </g>
 </svg>

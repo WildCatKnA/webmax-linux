@@ -26,7 +26,6 @@ const FONT_ZOOM_M = path.join(app.getAppPath(), "assets/", "font-minus.png");
 
 const MENU_QUIT   = path.join(app.getAppPath(), "assets/", "quit.png");
 const TRAY_SVG    = path.join(app.getAppPath(), "assets/", "_MAX032_unread.svg");
-const OVER_SVG    = path.join(app.getAppPath(), "assets/", "overlay-v2.svg");
 const ttMAX		  = "MAX";
 
 let unread = 0;
@@ -37,7 +36,6 @@ export default class TrayModule extends Module {
 	private readonly tray: Tray;
 	private lastCount = 0;
 	private svgTemplate: string;
-	private svgOverlay: string;
 	private worker: BrowserWindow;
 
 	constructor(
@@ -47,7 +45,6 @@ export default class TrayModule extends Module {
 		super();
 		this.tray = new Tray(ICON);
 		this.svgTemplate = fs.readFileSync(TRAY_SVG, 'utf8');
-		this.svgOverlay = fs.readFileSync(OVER_SVG, 'utf8');
 
 		this.worker = new BrowserWindow({
 			show: false,
@@ -243,22 +240,32 @@ export default class TrayModule extends Module {
 					} else {
 						const countText = unread > 99 ? '99' : unread.toString();
 						const processedSvg = this.svgTemplate.replace(/\${count}/g, countText);
-
+						//////////////////////////////
+						// вариант 1 - с помощью sharp
+						/*
+						sharp(Buffer.from(processedSvg), { density: 150 })
+							.png()
+							.toBuffer()
+						.then(pngBuffer => {
+							const nIcon = nativeImage.createFromBuffer(pngBuffer);
+							this.tray.setImage(nIcon);
+						})
+						.catch(err => {
+							console.error(err)
+							this.tray.setImage(ICON_UNREAD);
+						});//*/
+						///////////////////////////////
+						//вариант 2 - с помощью скрытого окошка
 						const dataUrl = await this.renderSvg(unread.toString());
 						const nIcon = nativeImage.createFromDataURL(dataUrl)
-						try { this.tray.setImage(nIcon); }
-						catch { this.tray.setImage(ICON_UNREAD); }
-
-						if (process.platform === 'win32') {
-							const processedOvl = this.svgOverlay.replace(/\${count}/g, countText);
-							const overUrl = await this.renderSvg(unread.toString());
-							const oIcon = nativeImage.createFromDataURL(dataUrl)
-							try { this.window.setOverlayIcon(oIcon,String(unread)); }
-							catch { this.window.setOverlayIcon(nativeImage.createFromPath(OVERLAY),String(unread)); }
-						}
+						this.tray.setImage(nIcon);
 					}
 				}
 				////////////////////////////////
+
+				if (process.platform === 'win32') {
+					this.window.setOverlayIcon(nativeImage.createFromPath(OVERLAY),String(unread));// title);
+				}
 
 			}
 			else {
@@ -304,26 +311,29 @@ export default class TrayModule extends Module {
 		});
 	}
 	////////////////////////////
-	// рисуем циферки в трее
-	private async renderSvg(count: string): Promise<string> {
-		const updatedSvg = this.svgTemplate.replace('${count}', count);
-		return this.worker.webContents.executeJavaScript(`
-        new Promise((resolve) => {
+  private async renderSvg(count: string): Promise<string> {
+    const updatedSvg = this.svgTemplate.replace('${count}', count);
+    
+    // Отправляем строку в браузерный движок для отрисовки на Canvas
+    return this.worker.webContents.executeJavaScript(`
+      new Promise((resolve) => {
         const img = new Image();
         const svgBlob = new Blob([\`${updatedSvg}\`], {type: 'image/svg+xml;charset=utf-8'});
         const url = URL.createObjectURL(svgBlob);
         
         img.onload = () => {
           const canvas = document.createElement('canvas');
-          canvas.width = img.width;
-          canvas.height = img.height;
+          canvas.width = img.width || 22; // Размер под XFCE
+          canvas.height = img.height || 22;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0);
           URL.revokeObjectURL(url);
           resolve(canvas.toDataURL('image/png'));
         };
         img.src = url;
-        });`);
-	}	
+      });
+    `);
+  }	
+	
 	////////////////////////////
 };

@@ -21,7 +21,7 @@ export function getUnusedPath(filePath) {
 	const name = path.basename(filePath, ext);
 	let counter = 1;
 
-	// найдем свободное имя: name (1).ext, name (2).ext ...
+	// ищем свободное имя: name (1).ext, name (2).ext ...
 	while (fs.existsSync(path.join(dir, `${name} (${counter})${ext}`))) {
 		counter++;
 	}
@@ -31,7 +31,7 @@ export function getUnusedPath(filePath) {
 
 ////////////////////////////////////////////////////////////////////
 
-// возвращаем полную версию Windows/Linux/Mac
+// возвращаем полную версию Windows/Linux/Mac (почти полную)
 export function getMyOSVersion() {
 	// разрядность
 	function getSystemArch() {
