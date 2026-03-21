@@ -1,10 +1,10 @@
-import { app, session, desktopCapturer, BrowserWindow, nativeImage, net, clipboard, nativeTheme, ipcMain, shell } from "electron";
+import { app, session, desktopCapturer, BrowserWindow, nativeImage, net, Notification, clipboard, nativeTheme, ipcMain, shell } from "electron";
 import HotkeyModule from "./module/hotkey-module";
 import ModuleManager from "./module/module-manager";
 import TrayModule from "./module/tray-module";
 import WindowSettingsModule from "./module/window-settings-module";
 import { getUnusedPath } from "./util";
-
+import Settings from "./settings";
 import { existsSync, createWriteStream, unlink } from "fs";
 import Store from "electron-store";
 
@@ -14,6 +14,7 @@ const store = new Store({
 	name: "globalStore",
 	clearInvalidConfig: true
 });
+///*
 const globalStore = {
 	has(key) {
 		return store.has(key);
@@ -28,6 +29,10 @@ const globalStore = {
 		return store.delete(key);
 	}
 };
+//*/
+
+const dloadSetting = new Settings("download");
+const spellSetting = new Settings("spell");
 
 //////////////////////////////////////////////////
 
@@ -40,7 +45,8 @@ let pickerWin: BrowserWindow | null = null;
 let isHidden = false;
 let saveTimeout;
 let bckGround;//: string;
-
+//let pendingSavePath: string | null = null;
+const pendingDownloads = new Map<string, string>();
 //////////////////////////////////
 const checkArchitecture = () => {
 	const isApp32 = process.arch === 'ia32';
@@ -64,6 +70,7 @@ export default class MainApp {
 	private readonly moduleManager: ModuleManager;
 	public quitting = false;
 	public openFldr = true;
+	public spellChecking = false;
 	private cssKey: string | null = null;
 
 	constructor() {
@@ -81,7 +88,7 @@ export default class MainApp {
 
 			webPreferences: {
 				preload: path.join(__dirname, 'preload.js'),
-				spellcheck: false,
+				spellcheck: true, //this.spellChecking,//false,
 //				autoplayPolicy: 'user-gesture-required',
 				contextIsolation: true, // if false - native Notification override in preload 
 				sandbox: false
@@ -99,21 +106,15 @@ export default class MainApp {
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// тут пытаемся "подправить" фон в просмотрщике...
-
-// вариант 1 - просто фон без эффектов (только черная подложка под видео)
+// тут пытаемся "подправить" фон в просмотрщике и прочую лабуду
 this.window.webContents.insertCSS(`
 *:focus { outline: none !important; box-shadow: none !important; }
-[class*="mover"] { backdrop-filter: blur(15px) saturate(140%) !important; -webkit-backdrop-filter: blur(12px) saturate(140%) !important; }
+//[class*="mover"] { backdrop-filter: blur(15px) saturate(140%) !important; -webkit-backdrop-filter: blur(12px) saturate(140%) !important; }
 [class*="media"] { background: #000000 !important; }
 [class*="videoLayer"] video { background: #000000; !important; border: none !important; }
+.navigation, aside, topbar, .openedChat { -webkit-user-select: none !important; user-select: none !important; }
 `).catch(err => console.error('CSS Injection failed:', err)); //*/
 
-// вариант 2 - "размазываем" фон (эффект стекла)
-/*this.window.webContents.insertCSS(`
- [class*="mover"] { backdrop-filter: blur(12px) saturate(140%) !important; -webkit-backdrop-filter: blur(12px) saturate(140%) !important; }
- [class*="videoLayer"] video { background: #000 !important; position: relative !important; }
-`).catch(err => console.error('CSS Injection failed:', err)); //*/
 ////////////////////////////////////////////////////////////////////////////////
 
 		this.moduleManager = new ModuleManager([
@@ -130,28 +131,85 @@ this.window.webContents.insertCSS(`
 		});
 
 		///////////////////////////////////////////////
-		// костыль, для скачивания видосика для костыля, который не отправит ссылку в браузер
-		this.window.webContents.session.on('will-download', (event, item, webContents) => {
+		// костыль, для скачивания картинок/видео
+/*		this.window.webContents.session.on('will-download', async (event, item, webContents) => {
+			event.preventDefault(); // чтобы не дублировал диалог
 			const fileName = item.getFilename(); 
 
 			// принудительно вызываем диалог сохранения:
-			const savePath = dialog.showSaveDialogSync(this.window, {
+			item.pause();
+			const lastPath = dloadSetting.get("downloadsPath", app.getPath("downloads"));
+			const savePath = await dialog.showSaveDialog(this.window, {
 				title: 'Сохранить файл',
-				defaultPath: path.join(app.getPath('downloads'), fileName) // предлагаем стандартное имя файла
+				defaultPath: path.join(lastPath, fileName) // предлагаем стандартное имя файла
 			});
+				dialog.showMessageBox({message:"ура, "+savePath});
 
 			if (savePath) {
-				item.setSavePath(getUnusedPath(savePath)); // добавляем (n), если файл уже есть
+				const folderPath = path.dirname(savePath);
+				dloadSetting.set("downloadsPath", folderPath); // Запоминаем папку
+
+//				item.setSavePath(getUnusedPath(savePath)); // добавляем (n), если файл уже есть
+				item.setSavePath(savePath);
+				item.resume(); // Продолжаем загрузку
 
 				item.once('done', (event, state) => {
-					this.window.webContents.send('dl-complete', { success: state === 'completed', path: savePath });
-//					resolve({ success: true, filePath: savePath });
-					if (this.openFldr) { shell.showItemInFolder(savePath); }
+					if (state === 'completed') {
+						this.window.webContents.send('dl-complete', { success: state === 'completed', path: savePath });
+//						resolve({ success: true, filePath: savePath });
+						if (this.openFldr) { shell.showItemInFolder(savePath); }
+					} else {
+						this.window.webContents.send('dl-complete', { success: false });
+					}
 				});
 			} else {
 				item.cancel(); // нажали "Отмена" в диалоге
 			}
+		});// */
+
+		//////
+		this.window.webContents.session.on('will-download', (event, item, webContents) => {
+			const url = item.getURL();
+
+			// этот URL в списке выбранных?
+			if (pendingDownloads.has(url)) {
+				const filePath = pendingDownloads.get(url)!;
+				item.setSavePath(filePath);
+				pendingDownloads.delete(url); // удаляем из очереди
+
+				item.once('done', (e, state) => {
+					if (state === 'completed') {
+						this.window.webContents.send('dl-complete', { success: true, path: filePath });
+						if (this.openFldr) shell.showItemInFolder(filePath);
+					}
+				});
+				return; 
+			}
+
+			// диалога "Сохранить файл" еще не было
+			event.preventDefault(); 
+			const fileName = item.getFilename();
+
+			(async () => {
+				const lastPath = dloadSetting.get("downloadsPath", app.getPath("downloads"));
+				const { filePath, canceled } = await dialog.showSaveDialog(this.window, {
+//					icon: path.join(app.getAppPath(), "assets/", process.platform === 'win32' ? "app.ico":"mainapp.png"),
+					title: 'Сохранить файл',
+					defaultPath: path.join(lastPath, fileName)
+				});
+
+				if (canceled || !filePath) return;
+
+				// Запоминаем путь
+				pendingDownloads.set(url, filePath);
+				dloadSetting.set("downloadsPath", path.dirname(filePath));
+
+				// перезапуск загрузки, для видео лучше метод session
+				this.window.webContents.session.downloadURL(url);
+			})();
 		});
+		//////
+
 	}
 	
 
@@ -165,6 +223,28 @@ this.window.webContents.insertCSS(`
 		// types 'geolocation' | 'unknown' | 'clipboard-read' | 'clipboard-sanitized-write' |
 		// 'display-capture' | 'mediaKeySystem' | 'midi' | 'midiSysex' | 'pointerLock' | 'fullscreen' |
 		// 'openExternal' | 'window-placement' | 'audioCapture' 
+
+//		this.spellChecking = process.argv.some(arg => arg.toLowerCase() === '--spellcheck');
+		this.spellChecking = spellSetting.get("spellCheck", false);
+		if (this.spellChecking === true) {
+//			session.defaultSession.setSpellCheckerLanguages(['ru-RU', 'en-US']);
+//			session.defaultSession.setSpellCheckerEnabled(this.spellChecking);
+			this.window.webContents.session.setSpellCheckerLanguages(['ru-RU', 'en-US']);
+			this.window.webContents.session.setSpellCheckerEnabled(this.spellChecking);
+		}
+		const notify = new Notification({
+			title: 'MAX',
+			body: `Проверка орфографии ${this.spellChecking ? 'включена' : 'выключена'}.`,
+			icon: path.join(app.getAppPath(), "assets/", this.spellChecking ? "spell-on.png":"spell-off.png"),
+			silent: true,
+		});
+		notify.on('click', () => {
+			if (!this.window.isVisible()) this.window.show();
+			if (this.window.isMinimized()) this.window.restore();
+			this.window.focus();
+		});
+		notify.show();
+
 		session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
 			const allowedPermissions = ['fullscreen', 'notifications', 'media', 'audioCapture', 'clipboard-read', 'clipboard-sanitized-write']; 
 			if (allowedPermissions.includes(permission)) {
@@ -283,6 +363,7 @@ this.window.webContents.insertCSS(`
 	}
 
 	public quit() {
+		spellSetting.set("spellCheck", this.spellChecking);
 		this.quitting = true;
 		this.moduleManager.onQuit();
 		app.quit();
@@ -411,19 +492,41 @@ this.window.webContents.insertCSS(`
 			function createKey(id, messageId2, chatId2) {
 				return `${id}_${messageId2}_${chatId2}`;
 			}
+
+			////////////
+			// диалог перед началом загрузки
+			const lastPath = dloadSetting.get("downloadsPath", app.getPath("downloads"));
+			const { filePath, canceled } = await dialog.showSaveDialog({
+//				icon: path.join(app.getAppPath(), "assets/", process.platform === 'win32' ? "app.ico":"mainapp.png"),
+				title: 'Сохранить файл',
+				defaultPath: path.join(lastPath, fileName)
+			});
+
+			if (canceled || !filePath) {
+				return { success: false, message: "Отменено пользователем" };
+			}
+
+			const folderPath = path.dirname(filePath);
+			dloadSetting.set("downloadsPath", folderPath);
+			////////////
+
 			const storeKey = createKey(fileId, messageId, chatId);
 			return new Promise((resolve, reject) => {
 				let canceled = false;
-				const downloadPath = app.getPath("downloads");
-				const filePath = path.join(downloadPath, fileName);
+
+				// если диалог не нужен - используем это
+//				const downloadPath = app.getPath("downloads");
+//				const filePath = path.join(downloadPath, fileName);
+
 				const exists = existsSync(filePath);
 				if (filePath && exists) {
 					if (this.openFldr) { shell.showItemInFolder(filePath); }
 					resolve({ success: true, filePath: filePath });
 					return;
-				}
+				}//*/
 
-				let finalFilePath = getUnusedPath(filePath);
+//				let finalFilePath = getUnusedPath(filePath);
+				let finalFilePath = filePath;
 				const file = createWriteStream(finalFilePath);
 				const req = get(url, (response) => {
 					const totalSize = parseInt(response.headers["content-length"] || "", 10);

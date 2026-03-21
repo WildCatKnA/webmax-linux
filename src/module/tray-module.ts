@@ -24,6 +24,9 @@ const FONT_ZOOM   = path.join(app.getAppPath(), "assets/", "font.png");
 const FONT_ZOOM_P = path.join(app.getAppPath(), "assets/", "font-plus.png");
 const FONT_ZOOM_M = path.join(app.getAppPath(), "assets/", "font-minus.png");
 
+const SPELL_ON    = path.join(app.getAppPath(), "assets/", "spell-on.png");
+const SPELL_OFF   = path.join(app.getAppPath(), "assets/", "spell-off.png");
+
 const MENU_QUIT   = path.join(app.getAppPath(), "assets/", "quit.png");
 const TRAY_SVG    = path.join(app.getAppPath(), "assets/", "_MAX032_unread.svg");
 const OVER_SVG    = path.join(app.getAppPath(), "assets/", "overlay-v2.svg");
@@ -133,6 +136,35 @@ export default class TrayModule extends Module {
 				]
 			},
 
+
+			{ type: 'separator' },
+
+			{
+				id: 'spellcheck',
+				label: "Проверка орфографии",
+//				type: 'checkbox',
+				icon: SPELL_ON,
+				checked: this.MainApp.spellChecking,
+				click: () => {
+					const item = menu.getMenuItemById('spellcheck');
+//					this.MainApp.spellChecking = item.checked;
+					this.MainApp.spellChecking = !this.MainApp.spellChecking;
+					this.window.webContents.session.setSpellCheckerEnabled(this.MainApp.spellChecking);
+					const notify = new Notification({
+						title: 'MAX',
+						body: `Проверка орфографии ${this.MainApp.spellChecking ? 'включена' : 'выключена'}.`,
+						icon: path.join(this.MainApp.spellChecking ? SPELL_ON : SPELL_OFF),
+						silent: true,
+					});
+					notify.on('click', () => {
+						if (!this.window.isVisible()) this.window.show();
+						if (this.window.isMinimized()) this.window.restore();
+						this.window.focus();
+					});
+					notify.show();
+					console.log(`spellcheck: ${this.MainApp.spellChecking ? 'on' : 'off'}`);
+				}
+			},
 
 			{ type: 'separator' },
 
@@ -303,6 +335,7 @@ export default class TrayModule extends Module {
 			////////////// */
 		});
 	}
+
 	////////////////////////////
 	// рисуем циферки в трее
 	private async renderSvg(count: string): Promise<string> {
