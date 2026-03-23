@@ -57,6 +57,7 @@ npm run mac      # compile and build for MacOS
 ```
 
 5. Have fun =)
+
 6. Version history:
 ### v1.0.1-1
 - Initial release.
