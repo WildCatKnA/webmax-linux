@@ -1,8 +1,9 @@
-# MAX Desktop for Linux (x64) / Windows-7 (x86 & x64) / MacOS-10.15.7 or highter (x64). It's unofficial App
+# MAX Desktop for Linux / Windows-7 / MacOS-10.15 (unofficial App).
 MAX Linux client built with Electron (used Electron-v22.3.27). Here is an unofficial build (because as an official MAX it is written poorly).
 It is fork from [WhatsApp-Desktop-Linux](https://github.com/mimbrero/whatsapp-desktop-linux) that's written by Alberto Mimbrero.
 
-This app can be used on any Linux-x64, Windows-7_x64 or higther and MacOS-10.15.x or highter.
+This app can be used on any Linux (x64), Windows-7 (x86 & x64) or higther and MacOS-10.15.7 or highter (x64).
+Also here you can find build for MacOS-12.x (arm64 but only in .zip).
 ##
 
 ## 📜 Disclaimer
