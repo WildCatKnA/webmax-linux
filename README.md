@@ -1,9 +1,8 @@
-# MAX Desktop for Linux / Windows-7 / MacOS-10.15 (unofficial).
+# MAX Desktop for Linux / Windows-7 / MacOS-10.15 (unofficial)
 MAX Linux client built with Electron (used Electron-v22.3.27). Here is an unofficial build (because as an official MAX it is written poorly).
 It is fork from [WhatsApp-Desktop-Linux](https://github.com/mimbrero/whatsapp-desktop-linux) that's written by Alberto Mimbrero.
 
-This app can be used on any Linux (x64), Windows-7 (x86 & x64) or higther and MacOS-10.15.7 or highter (x64).
-Also here you can find build for MacOS-12.x (arm64 but only in .zip).
+This app can be used on any Linux-x64, Windows-7_x64 or higther and MacOS-10.15.x or highter.
 ##
 
 ## 📜 Disclaimer
@@ -111,3 +110,7 @@ Please uncheck checkBox in About dialog (because it's block All videos and audio
 - After saving an application, the application remembers all used labels, even if you restart the application.
 - A "Spell Check" option has been added to the tray menu (spell checking is disabled by default; click the menu, and it will tell you whether to enable or disable it. 
 - for Win7 and MacOS used Electron-22, and for Win10 and Linux used Electron-40.
+
+### v1.0.4-10
+- Images are now saved in JPEG format;
+- slightly improved the issue with increasing/decreasing font size in chats—line spacing is now taken into account.
