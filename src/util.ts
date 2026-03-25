@@ -1,4 +1,4 @@
-import { app, nativeImage, Tray, } from "electron";
+import { app, Tray, } from "electron";
 import fs from "fs";
 import path from "path";
 
@@ -30,7 +30,6 @@ export function getUnusedPath(filePath) {
 }
 
 ////////////////////////////////////////////////////////////////////
-
 // возвращаем полную версию Windows/Linux/Mac (почти полную)
 export function getMyOSVersion() {
 	// разрядность
@@ -84,4 +83,3 @@ export function getMyOSVersion() {
 	return fullVer;
 }
 
-////////////////////////////////////////////////////////////////////

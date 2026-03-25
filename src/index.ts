@@ -37,6 +37,7 @@ if (process.platform !== 'darwin') {
 }
 
 // пробуем выбить разрешение трансляции экрана при старте (macos)
+/*
 if (process.platform === 'darwin') {
 	// в Catalina это может вернуть denied или not-determined
 	const status = systemPreferences.getMediaAccessStatus('screen');
@@ -49,7 +50,7 @@ if (process.platform === 'darwin') {
 			console.log("Запрос прав инициирован через getSources");
 		});
 	}
-}
+}// */
 
 /////////////////////////////////////////////////////////////////
 import MainApp from './mainapp';

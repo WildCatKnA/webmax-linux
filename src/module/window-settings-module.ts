@@ -32,6 +32,7 @@ export default class WindowSettingsModule extends Module {
 			this.window.maximize();
 		}
 		this.MainApp.openFldr = settings.get("show-folder", true);
+		this.MainApp.fullscrView = settings.get("fullscreenViewer", true); // linux or windows only
 	}
 
 	public override onQuit() {
@@ -41,5 +42,6 @@ export default class WindowSettingsModule extends Module {
 			settings.set("bounds", this.window.getNormalBounds());
 		}
 		settings.set("show-folder", this.MainApp.openFldr);
+		settings.set("fullscreenViewer", this.MainApp.fullscrView);
 	}
 };

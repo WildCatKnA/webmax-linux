@@ -4,10 +4,10 @@ import ModuleManager from "./module/module-manager";
 import TrayModule from "./module/tray-module";
 import WindowSettingsModule from "./module/window-settings-module";
 import { getUnusedPath } from "./util";
+//import { convertWebpToJpegInRenderer } from "./util";
 import Settings from "./settings";
 import { existsSync, createWriteStream, unlink } from "fs";
 import Store from "electron-store";
-
 import { get } from "https";
 
 const store = new Store({
@@ -71,6 +71,7 @@ export default class MainApp {
 	public quitting = false;
 	public openFldr = true;
 	public spellChecking = false;
+	public fullscrView = false;
 	private cssKey: string | null = null;
 
 	constructor() {
@@ -99,7 +100,7 @@ export default class MainApp {
 
 		// костыль в виде CSS-кода для  НОРМАЛЬНОГО выравнивания содержимого по высоте окна
 		// (видимо, electron-21 и ниже криво обрабатывают сие безарбузие,  рисуя скроллбары
-		// поверх мах-интерфейсовых)
+		// поверх мах-интерфейсовых) - уже не актуально
 //		if (process.versions.electron.startsWith('21.')) {
 //			this.window.webContents.insertCSS('.aside, .openedChat { height: 100vh; display: flex; flex-direction: column; }  ');
 //		}
@@ -112,7 +113,9 @@ this.window.webContents.insertCSS(`
 //[class*="mover"] { backdrop-filter: blur(15px) saturate(140%) !important; -webkit-backdrop-filter: blur(12px) saturate(140%) !important; }
 [class*="media"] { background: #000000 !important; }
 [class*="videoLayer"] video { background: #000000; !important; border: none !important; }
-.navigation, aside, topbar, .openedChat { -webkit-user-select: none !important; user-select: none !important; }
+[class*="settings"] { -webkit-user-select: none !important; user-select: none !important; }
+//.navigation, aside, topbar, .openedChat { -webkit-user-select: none !important; user-select: none !important; }
+.navigation, aside, topbar { -webkit-user-select: none !important; user-select: none !important; }
 `).catch(err => console.error('CSS Injection failed:', err)); //*/
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -132,42 +135,91 @@ this.window.webContents.insertCSS(`
 
 		///////////////////////////////////////////////
 		// костыль, для скачивания картинок/видео
-/*		this.window.webContents.session.on('will-download', async (event, item, webContents) => {
-			event.preventDefault(); // чтобы не дублировал диалог
-			const fileName = item.getFilename(); 
+		// вариант с конвертированием в .jpg
+		this.window.webContents.session.on('will-download', (event, item, webContents) => {
+			const url = item.getURL();
+			const isWebP = item.getMimeType() === 'image/webp' || url.toLowerCase().endsWith('.webp');
 
-			// принудительно вызываем диалог сохранения:
-			item.pause();
-			const lastPath = dloadSetting.get("downloadsPath", app.getPath("downloads"));
-			const savePath = await dialog.showSaveDialog(this.window, {
-				title: 'Сохранить файл',
-				defaultPath: path.join(lastPath, fileName) // предлагаем стандартное имя файла
-			});
-				dialog.showMessageBox({message:"ура, "+savePath});
+			// это видео или мы уже в процессе повторной загрузки
+			if (!isWebP || pendingDownloads.has(url)) {
+				if (pendingDownloads.has(url)) {
+					const filePath = pendingDownloads.get(url)!;
+					item.setSavePath(filePath);
+					pendingDownloads.delete(url);
 
-			if (savePath) {
-				const folderPath = path.dirname(savePath);
-				dloadSetting.set("downloadsPath", folderPath); // Запоминаем папку
-
-//				item.setSavePath(getUnusedPath(savePath)); // добавляем (n), если файл уже есть
-				item.setSavePath(savePath);
-				item.resume(); // Продолжаем загрузку
-
-				item.once('done', (event, state) => {
-					if (state === 'completed') {
-						this.window.webContents.send('dl-complete', { success: state === 'completed', path: savePath });
-//						resolve({ success: true, filePath: savePath });
-						if (this.openFldr) { shell.showItemInFolder(savePath); }
-					} else {
-						this.window.webContents.send('dl-complete', { success: false });
-					}
-				});
-			} else {
-				item.cancel(); // нажали "Отмена" в диалоге
+					item.once('done', (e, state) => {
+						if (state === 'completed') {
+							this.window.webContents.send('dl-complete', { success: true, path: filePath });
+							if (this.openFldr) shell.showItemInFolder(filePath);
+						}
+					});
+					return;
+				}
 			}
-		});// */
 
-		//////
+			// это .webp - перехватываем процесс
+			event.preventDefault(); 
+
+			(async () => {
+				const lastPath = dloadSetting.get("downloadsPath", app.getPath("downloads"));
+				// меняем расширение, чтобы потом с этим не заморачиваться
+				const fileName = item.getFilename().replace(/\.webp$/i, '.jpg');
+
+				const { filePath, canceled } = await dialog.showSaveDialog(this.window, {
+					title: 'Сохранить файл',
+					defaultPath: path.join(lastPath, fileName)
+				});
+
+				if (canceled || !filePath) return;
+				if (!isWebP) {
+					dloadSetting.set("downloadsPath", path.dirname(filePath));
+					pendingDownloads.set(url, filePath);
+					this.window.webContents.session.downloadURL(url);
+				} else {
+					try {
+						// грузим и конвертим прямо в renderer через canvas
+						const base64Jpg = await webContents.executeJavaScript(`
+							fetch("${url}").then(r => r.blob()).then(blob => {
+								return new Promise((resolve) => {
+									const img = new Image();
+									img.onload = () => {
+										const canvas = document.createElement('canvas');
+										canvas.width = img.width;
+										canvas.height = img.height;
+										const ctx = canvas.getContext('2d');
+										ctx.fillStyle = 'white';
+										ctx.fillRect(0, 0, canvas.width, canvas.height);
+										ctx.drawImage(img, 0, 0);
+										resolve(canvas.toDataURL('image/jpeg', 0.9));
+									};
+									img.src = URL.createObjectURL(blob);
+								});
+							})
+						`);
+
+						const base64Data = base64Jpg.split(';base64,').pop();
+						const buffer = Buffer.from(base64Data, 'base64') as Buffer;
+
+						// и пишем напрямую
+						fs.writeFileSync(filePath, buffer);
+
+						dloadSetting.set("downloadsPath", path.dirname(filePath));
+						this.window.webContents.send('dl-complete', { success: true, path: filePath });
+						if (this.openFldr) shell.showItemInFolder(filePath);
+
+					} catch (err) {
+						// если всё совсем плохо, скачиваем как есть
+						console.log("ошибка конвертации:", err);
+						pendingDownloads.set(url, filePath);
+						this.window.webContents.session.downloadURL(url);
+					}
+				}
+			})();
+		}); // */
+
+		////////////////////////////////////////////////////////////////////
+		// этот вариант просто сохраняет .webp без конвертирования или видео
+/*
 		this.window.webContents.session.on('will-download', (event, item, webContents) => {
 			const url = item.getURL();
 
@@ -207,12 +259,11 @@ this.window.webContents.insertCSS(`
 				// перезапуск загрузки, для видео лучше метод session
 				this.window.webContents.session.downloadURL(url);
 			})();
-		});
+		}); //*/
 		//////
 
 	}
 	
-
 	public init() {
 		app.setAppUserModelId('ru.oneme.electron'); // прикинемся "ветошью"
 		app.setAsDefaultProtocolClient("max");
@@ -231,6 +282,7 @@ this.window.webContents.insertCSS(`
 //			session.defaultSession.setSpellCheckerEnabled(this.spellChecking);
 			this.window.webContents.session.setSpellCheckerLanguages(['ru-RU', 'en-US']);
 			this.window.webContents.session.setSpellCheckerEnabled(this.spellChecking);
+//			this.window.webContents.session.invalidateServiceWorkers();
 		}
 		const notify = new Notification({
 			title: 'MAX',
@@ -337,7 +389,7 @@ this.window.webContents.insertCSS(`
 			});
 		}); //*/
 		///////////////////////////////////////////////
-		checkArchitecture();
+		if (process.platform === 'win32') { checkArchitecture(); }
 		///////////////////////////////////////////////
 		this.makeLinksOpenInBrowser();
 		this.registerListeners();
@@ -450,12 +502,13 @@ this.window.webContents.insertCSS(`
 
 		///////////////////////////////////////////
 		// махинации с просмотрщиком
-
 		ipcMain.on('toggle-max-viewer', (event, isActive) => {
 //			console.log('toggle-max-viewer');
-			const win = BrowserWindow.fromWebContents(event.sender);
-			if (win) {
-				win.setFullScreen(isActive);
+			if (process.platform !== 'darwin' && this.fullscrView) {
+				const win = BrowserWindow.fromWebContents(event.sender);
+				if (win) {
+					win.setFullScreen(isActive);
+				}
 			}
 		}); // */
 		//////////////////////////////////////////////////////////
@@ -493,9 +546,11 @@ this.window.webContents.insertCSS(`
 				return `${id}_${messageId2}_${chatId2}`;
 			}
 
+//			dialog.showMessageBox({message: url});
 			////////////
 			// диалог перед началом загрузки
 			const lastPath = dloadSetting.get("downloadsPath", app.getPath("downloads"));
+
 			const { filePath, canceled } = await dialog.showSaveDialog({
 //				icon: path.join(app.getAppPath(), "assets/", process.platform === 'win32' ? "app.ico":"mainapp.png"),
 				title: 'Сохранить файл',
@@ -518,7 +573,7 @@ this.window.webContents.insertCSS(`
 //				const downloadPath = app.getPath("downloads");
 //				const filePath = path.join(downloadPath, fileName);
 
-				const exists = existsSync(filePath);
+/*				const exists = existsSync(filePath);
 				if (filePath && exists) {
 					if (this.openFldr) { shell.showItemInFolder(filePath); }
 					resolve({ success: true, filePath: filePath });
@@ -572,4 +627,5 @@ this.window.webContents.insertCSS(`
 		///////////////////////////////////////////////
 
 	}
+
 };

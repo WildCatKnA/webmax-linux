@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
 			list.appendChild(div);
 		});
 	});//*/
+
 	// слушаем данные
 	window.electronAPI.onShowSources((sources) => {
 		allSources = sources;

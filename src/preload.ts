@@ -68,6 +68,7 @@ function applyMaxFontSmooth(percent: number) { // Явно указываем : 
 
     // типизируем объект с базовыми размерами
     const baseSizes: Record<string, number> = {
+    	baseline: 20,
 		header: 24,
 		detail: 15,
 		body: 16,
@@ -81,17 +82,18 @@ function applyMaxFontSmooth(percent: number) { // Явно указываем : 
 	};
 
 	// с этим TS не будет ругаться на умножение
-	const headerSize = (baseSizes.header * percent).toFixed(1);
-	const detailSize = (baseSizes.detail * percent).toFixed(1);
-	const bodySize = (baseSizes.body * percent).toFixed(1);
-	const bubbleSize = (baseSizes.bubble * percent).toFixed(1);
+	const baseLine     = (baseSizes.baseline * percent).toFixed(1);
+	const headerSize   = (baseSizes.header   * percent).toFixed(1);
+	const detailSize   = (baseSizes.detail   * percent).toFixed(1);
+	const bodySize     = (baseSizes.body     * percent).toFixed(1);
+	const bubbleSize   = (baseSizes.bubble   * percent).toFixed(1);
 	const markdownSize = (baseSizes.markdown * percent).toFixed(1);
-	const mdtitleSize = (baseSizes.mdtitle * percent).toFixed(1);
-	const smtitleSize = (baseSizes.smtitle * percent).toFixed(1);
-	const tagSize = (baseSizes.tag * percent).toFixed(1);
-	const labelSize = (baseSizes.label * percent).toFixed(1);
-	const inputSize = (baseSizes.input * percent).toFixed(1);
-    const lhCoeff = 1.3;
+	const mdtitleSize  = (baseSizes.mdtitle  * percent).toFixed(1);
+	const smtitleSize  = (baseSizes.smtitle  * percent).toFixed(1);
+	const tagSize      = (baseSizes.tag      * percent).toFixed(1);
+	const labelSize    = (baseSizes.label    * percent).toFixed(1);
+	const inputSize    = (baseSizes.input    * percent).toFixed(1);
+    const lhCoeff      = 1.3;
 
     styleElement.textContent = `
 :root {
@@ -107,7 +109,7 @@ function applyMaxFontSmooth(percent: number) { // Явно указываем : 
   --font-markdown-message-base-size: ${markdownSize}px !important;
   --font-markdown-message-line-height: ${(Number(markdownSize) * lhCoeff).toFixed(1)}px !important;
   --font-markdown-message-title-size: ${mdtitleSize}px !important;
-
+  --font-markdown-message-base-line-height: ${baseLine}px !important;
   --font-action-small-size: ${smtitleSize}px !important;
   --font-action-small-line-height: ${(Number(smtitleSize) * lhCoeff).toFixed(1)}px !important;
 

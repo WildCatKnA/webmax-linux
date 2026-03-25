@@ -150,6 +150,8 @@ export default class TrayModule extends Module {
 //					this.MainApp.spellChecking = item.checked;
 					this.MainApp.spellChecking = !this.MainApp.spellChecking;
 					this.window.webContents.session.setSpellCheckerEnabled(this.MainApp.spellChecking);
+//					this.window.webContents.invalidateServiceWorkers();
+
 					const notify = new Notification({
 						title: 'MAX',
 						body: `Проверка орфографии ${this.MainApp.spellChecking ? 'включена' : 'выключена'}.`,

@@ -1,7 +1,7 @@
 {
 	"name": "webmax",
 	"productName": "webmax",
-	"version": "1.0.4-8",
+	"version": "1.0.4-10",
 	"description": "WebMax for Linux (unofficial)",
 	"main": "dist/index.js",
 	"scripts": {
@@ -12,7 +12,8 @@
 		"build": "npm run dist && electron-builder",
 		"linux": "npm run dist && electron-builder --linux --x64",
 		"windows": "npm run dist && electron-builder --windows --x64",
-		"macos": "npm run dist && electron-builder --mac --x64"
+		"macos": "npm run dist && electron-builder --mac --x64",
+		"macarm": "npm run dist && electron-builder --mac --arm64"
 	},
 	"author": "wildcat",
 	"license": "MIT",
