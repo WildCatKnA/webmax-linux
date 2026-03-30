@@ -1,8 +1,8 @@
 # MAX Desktop for Linux / Windows-7 / MacOS-10.15 (unofficial)
-MAX Linux client built with Electron (used Electron-v22.3.27). Here is an unofficial build (because as an official MAX it is written poorly).
+MAX web based client built with Electron. Here is an unofficial build (because as an official MAX it is written poorly).
 It is fork from [WhatsApp-Desktop-Linux](https://github.com/mimbrero/whatsapp-desktop-linux) that's written by Alberto Mimbrero.
 
-This app can be used on any Linux-x64, Windows-7_x64 or higther and MacOS-10.15.x or highter.
+This app can be used on any Linux-x64, Windows-7 (x86/x64) or higther and MacOS-10.15.x (x64) or highter.
 ##
 
 ## 📜 Disclaimer
@@ -86,7 +86,7 @@ Please uncheck checkBox in About dialog (because it's block All videos and audio
 - You can now select a window or screen to broadcast in video calls.
 
 ### v1.0.4-2
-- Now you can use this App as Portable (Windows/Linux) - All data will be saved in the same folder as the application. To make the application portable, create an empty file named is_portable.txt in the application folder.
+- Now you can use this App as Portable (Windows/Linux) - All data will be saved in the same folder as the application. To make the application portable, create an empty file named *is_portable.txt* in the application folder.
 - Added build for Windows x86.
 - Little fixes.
 
@@ -94,7 +94,7 @@ Please uncheck checkBox in About dialog (because it's block All videos and audio
 - Fixed dependency on color scheme at startup or when selecting a window to broadcast.
 
 ### v1.0.4-8
-- Now, if you have an image in the clipboard, you can paste it into the message line not only with Ctrl+V, but also via the "Paste" context menu option (this may not work in rare cases).
+- Now, if you have an image in the clipboard, you can paste it into the message line not only with **Ctrl+V**, but also via the "Paste" context menu option (this may not work in rare cases).
 - Windows: The number of unread chats is now displayed not only in the system tray, but also on the application icon on the taskbar (provided the taskbar is not small). (on Linux number of unreads displayed on tray, on Mac it doesn't work)
 - Minor code fixes to address some bugs, optimize, and reduce weight.
 - Now you can start this app as hidden in Tray by launch with parameter --hidden
@@ -102,7 +102,7 @@ Please uncheck checkBox in About dialog (because it's block All videos and audio
 /path/to/your/webmax/webmax --hidden
 ```
 - Mac-builds supports MacOS 10.15.7 and higher but "Paste" from context menu doesn't work (use Command+V keys)
-- If you need a portable version, create an empty file is_portable.txt in the application folder.
+- If you need a portable version, create an empty file **is_portable.txt** in the application folder.
 - Also added builds on electron-40 for Windows 10 and higher (x86/x64) and Linux (x64)
 
 ### v1.0.4-9
@@ -114,3 +114,11 @@ Please uncheck checkBox in About dialog (because it's block All videos and audio
 ### v1.0.4-10
 - Images are now saved in JPEG format;
 - slightly improved the issue with increasing/decreasing font size in chats—line spacing is now taken into account.
+### v1.0.4-11
+- While in the media viewer, you can save media using the **Ctrl+S** keyboard shortcut;
+- Pressing **Esc** minimizes the application to the tray (provided we're not in the chat feed);
+You can also minimize the application to the tray (under any circumstances) using the **Ctrl+W** keyboard shortcut;
+- Another attempt to stop video playback in the chat feed (not perfect, but better than before);
+- [Win10/11] When exiting the application, the shortcut in *%APPDATA%\Roaming\Microsoft\Windows\StartMenu\Programs* is deleted;
+(If you don't need this shortcut at all, you can use the Win7 version - in my experience, this version doesn't create a shortcut)
+- [MacOS] The tray menu has moved to the main panel and now "lives" next to the Apple icon (left-clicking the tray icon to show/hide the application)
