@@ -265,9 +265,20 @@ this.window.webContents.insertCSS(`
 	}
 	
 	public init() {
-		app.setAppUserModelId('ru.oneme.electron'); // прикинемся "ветошью"
-		app.setAsDefaultProtocolClient("max");
+		// закомментировать - уведомления могут не работать
+		app.setAppUserModelId('WebMax Desktop'); 
 
+		// чтоб не создавался ключ в реестре
+		// (HKEY_CURRENT_USER\Software\Classes\max),
+		// закомментируем сей параметр:
+//		app.setAsDefaultProtocolClient("max");
+
+		// с этим - не создаёт GPU-кэш в реестре и на диске
+		// (но, судя по названию, вырубит аппаратное ускорение)
+//		app.disableHardwareAcceleration(); 
+
+		// запретить автозагрузку
+		app.setLoginItemSettings({ openAtLogin: false });
 
 		///////////////////////////////////////////////
 		// уведомления, доступ к медиа и микрофону, если возможно, и прочее
@@ -465,6 +476,28 @@ this.window.webContents.insertCSS(`
 			this.window.focus();
 		});
 
+		///////////////////////////////////////////
+		// подчищаем за собой в Windows/StartMenu
+		// (пытаемся удалить ярлык для уведомлений)
+		app.on('will-quit', () => {
+			if (process.platform === 'win32') {
+				const shortcutName = `${app.name}.lnk`; 
+				const shortcutPath = path.join(
+					process.env.APPDATA || '', 
+					'..', 'Roaming', 'Microsoft', 'Windows', 'Start Menu', 'Programs',  shortcutName
+				);
+
+				if (fs.existsSync(shortcutPath)) {
+					try {
+						fs.unlinkSync(shortcutPath);
+					} catch (e) {
+						console.error("Не удалось подчистить ярлык", e);
+					}
+				}
+			}
+		});
+
+
 		this.window.webContents.on('enter-html-full-screen', () => {
 			this.window.setFullScreen(true);
 		});
@@ -498,6 +531,13 @@ this.window.webContents.insertCSS(`
 
 			this.window.show();
 			this.window.focus();
+		});
+
+		////////////////////////////////////////
+		// сворачиваемся по Esc, если чат закрыт
+		ipcMain.on('hide-by-esc', (event) => {
+			event.preventDefault(); // чтобы не выполнялись иные действия, проигнорим их
+			this.window.hide();
 		});
 
 		///////////////////////////////////////////

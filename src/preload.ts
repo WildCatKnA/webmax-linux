@@ -19,35 +19,236 @@ function overrideNotification() {
 // попытка остановить автовоспроизведение видео в MAX.
 // вроде бы  сработало =) внедрим  скриптик, который
 // будет выполняться внутри "мира" страницы
+// вариант 1 - срабатывает до первого клика по Play
+// (после этого все видео начинают играть)
+/*const scriptToInject = `
+(function() {
+	const originalPlay = HTMLMediaElement.prototype.play;
+
+	Object.defineProperty(HTMLMediaElement.prototype, 'play', {
+		configurable: true,
+		value: function() {
+			// разрешаем аудиосообщения
+			if (this.tagName === 'AUDIO') {
+				return originalPlay.apply(this, arguments);
+			}
+
+			// разрешаем видео только по клику Play
+			if (this.dataset.userActivated === 'true') {
+				return originalPlay.apply(this, arguments);
+			}
+
+			// console.log('--- AUTOPLAY BLOCKED BY INJECTION ---');
+			return Promise.reject('Manual play required');
+		}
+	});
+
+	document.addEventListener('mousedown', () => {
+		document.querySelectorAll('video').forEach(v => {
+			v.dataset.userActivated = 'true';
+		});
+	}, { capture: true, passive: true });
+})();
+`; //*/
+/*const scriptToInject = `
+(function() {
+	const originalPlay = HTMLMediaElement.prototype.play;
+	const originalPause = HTMLMediaElement.prototype.pause;
+	let isUserInteracting = false;
+	let interactionTimeout = null;
+
+	// для временной разблокировки
+	function setInteraction() {
+		isUserInteracting = true;
+		if (interactionTimeout) clearTimeout(interactionTimeout);
+		interactionTimeout = setTimeout(() => { isUserInteracting = false; }, 500); // 500мс - надежное окно
+	}
+
+	// слушаем клики и нажатия клавиш (пробел для Play)
+	['mousedown', 'keydown', 'touchstart'].forEach(type => {
+		document.addEventListener(type, (e) => {
+			if (e.isTrusted) setInteraction();
+		}, { capture: true, passive: true });
+	});
+
+	Object.defineProperty(HTMLMediaElement.prototype, 'play', {
+		configurable: true,
+		value: function() {
+			if (this.tagName === 'AUDIO') return originalPlay.apply(this, arguments);
+
+			if (isUserInteracting) {
+				// Если юзер реально кликнул - разрешаем и сбрасываем флаг
+				isUserInteracting = false;
+				return originalPlay.apply(this, arguments);
+			}
+
+			// ЕСЛИ ЭТО АВТОПЛЕЙ (скролл):
+			// 1. Останавливаем видео физически
+			originalPause.apply(this); 
+			// 2. Убираем атрибут autoplay, чтобы Chromium не пытался снова
+			this.removeAttribute('autoplay');
+			this.autoplay = false;
+			
+			// console.log('--- BLOCKING BACKGROUND PLAY ---');
+			
+			// возвращаем заваленный промис, чтобы интерфейс чата ПОНЯЛ, 
+			// что видео НЕ заиграло и вернул кнопку в статус "Play"
+			return Promise.reject(new DOMException('Play interrupted by user script', 'NotAllowedError'));
+		}
+	});
+
+	// чистим новые элементы при скролле
+	const obs = new MutationObserver((ms) => {
+		ms.forEach(m => m.addedNodes.forEach(n => {
+			const vids = n.tagName === 'VIDEO' ? [n] : (n.querySelectorAll ? n.querySelectorAll('video') : []);
+			vids.forEach(v => {
+				v.removeAttribute('autoplay');
+				v.preload = 'metadata';
+			});
+		}));
+	});
+	obs.observe(document.body, { childList: true, subtree: true });
+})();
+`;//*/
+///////////
+// вариант 2 - не играют все видео, но есть один нюанс
+// (если видео в последнем сообщении чата - оно играет)
+
+/**/
 const scriptToInject = `
 (function() {
-    const originalPlay = HTMLMediaElement.prototype.play;
+	const originalPlay = HTMLMediaElement.prototype.play;
+	let lastInteraction = 0;
 
-    Object.defineProperty(HTMLMediaElement.prototype, 'play', {
-        configurable: true,
-        value: function() {
-            // разрешаем аудиосообщения
-            if (this.tagName === 'AUDIO') {
-                return originalPlay.apply(this, arguments);
-            }
+	document.addEventListener('mousedown', (e) => { 
+		if (e.isTrusted) lastInteraction = Date.now(); 
+	}, true);
 
-            // разрешаем видео только по клику Play
-            if (this.dataset.userActivated === 'true') {
-                return originalPlay.apply(this, arguments);
-            }
+	Object.defineProperty(HTMLMediaElement.prototype, 'play', {
+		configurable: true,
+		value: function() {
+			if (this.tagName === 'AUDIO') return originalPlay.apply(this, arguments);
 
-            // console.log('--- AUTOPLAY BLOCKED BY INJECTION ---');
-            return Promise.reject('Manual play required');
-        }
-    });
+			const isManual = (Date.now() - lastInteraction) < 1000;
+			if (isManual) {
+				this.dataset.manuallyStarted = 'true';
+				return originalPlay.apply(this, arguments);
+			}
 
-    document.addEventListener('mousedown', () => {
-        document.querySelectorAll('video').forEach(v => {
-            v.dataset.userActivated = 'true';
-        });
-    }, { capture: true, passive: true });
+			// БЛОКИРОВКА: сначала разрешаем "мнимый" запуск, чтобы не было ошибок
+			// но тут же планируем паузу в следующем цикле событий
+			const video = this;
+			video.removeAttribute('autoplay');
+			
+			Promise.resolve().then(() => {
+				video.pause();
+				// генерируем событие паузы вручную, если чат его пропустил
+				video.dispatchEvent(new Event('pause'));
+			});
+
+			return Promise.resolve();
+		}
+	});
+
+	// дополнительный предохранитель для кнопок
+	document.addEventListener('play', (e) => {
+		const v = e.target;
+		if (v.tagName === 'VIDEO' && v.dataset.manuallyStarted !== 'true') {
+			// используем setTimeout, чтобы дать скриптам чата "почувствовать" паузу
+			setTimeout(() => {
+				v.pause();
+				v.dispatchEvent(new Event('pause'));
+			}, 10);
+		}
+	}, true);
+
+	// удаление автоплея у новых элементов
+	new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(n => {
+		const vids = n.tagName === 'VIDEO' ? [n] : (n.querySelectorAll ? n.querySelectorAll('video') : []);
+		vids.forEach(v => { v.removeAttribute('autoplay'); v.preload = 'metadata'; });
+	}))).observe(document.body, { childList: true, subtree: true });
 })();
 `;
+//*/
+
+///////////////////////////////////////////////////////
+// вариант 3 - не стабильный
+/*
+const scriptToInject = `
+(function() {
+	const originalPlay = HTMLMediaElement.prototype.play;
+	let lastInteraction = 0;
+
+	document.addEventListener('mousedown', (e) => { 
+		if (e.isTrusted) lastInteraction = Date.now(); 
+	}, true);
+
+Object.defineProperty(HTMLMediaElement.prototype, 'play', {
+	configurable: true,
+	value: function() {
+		if (this.tagName === 'AUDIO') return originalPlay.apply(this, arguments);
+
+		const video = this;
+		const now = Date.now();
+		// кратковременное "окно доверия" для клика (1 сек)
+		const isManual = (now - lastInteraction) < 1000;
+
+		// 1. проверяем признаки просмотрщика или диалога (включая FullScreen)
+		const isPlayer = video.closest('dialog') || 
+						 video.closest('.mover') || 
+						 video.closest('.videoLayer') ||
+						 video.closest('[role="region"]') ||
+						 document.fullscreenElement || 
+						 document.webkitFullscreenElement;
+
+		// РАЗРЕШАЕМ: если это плеер/диалог ИЛИ был свежий клик
+		if (isPlayer) {
+			video.dataset.manuallyStarted = 'true';
+			return originalPlay.apply(this, arguments);
+		}
+
+		if (isManual) {
+			video.dataset.manuallyStarted = 'true';
+			return originalPlay.apply(this, arguments);
+		}
+
+		// БЛОКИРУЕМ: если это видео в ленте чата (video--interactive)
+		const isChat = video.closest('.video--interactive') || video.classList.contains('player--cover');
+		
+		if (isChat || !isPlayer) {
+			video.pause();
+			video.removeAttribute('autoplay');
+			const p = Promise.reject(new DOMException('Autoplay blocked', 'NotAllowedError'));
+			p.catch(() => {}); 
+			return p;
+		}
+
+		return originalPlay.apply(this, arguments);
+	}
+});
+
+	// БЕЗОПАСНЫЙ ЗАПУСК ОБСЕРВЕРА
+	const startObserver = () => {
+		if (!document.body) {
+			// Если body еще нет, пробуем через 50мс
+			setTimeout(startObserver, 50);
+			return;
+		}
+
+		const obs = new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(n => {
+			if (n.nodeType !== 1) return; // проверка, что это Element
+			const vids = n.tagName === 'VIDEO' ? [n] : (n.querySelectorAll ? n.querySelectorAll('video') : []);
+			vids.forEach(v => { v.removeAttribute('autoplay'); v.preload = 'metadata'; });
+		})));
+
+		obs.observe(document.body, { childList: true, subtree: true });
+	};
+
+	startObserver();
+})();
+`;
+//*/
+
 
 ///////////////////////////////////////////
 
@@ -57,18 +258,18 @@ let currentFontPercent = parseFloat(localStorage.getItem('max-font-scale') || '1
 //let currentFontPercent = 1;
 
 function applyMaxFontSmooth(percent: number) { // Явно указываем : number
-    const styleId = 'electron-font-smooth-override';
-    let styleElement = document.getElementById(styleId);
+	const styleId = 'electron-font-smooth-override';
+	let styleElement = document.getElementById(styleId);
 
-    if (!styleElement) {
-        styleElement = document.createElement('style');
-        styleElement.id = styleId;
-        document.head.appendChild(styleElement);
-    }
+	if (!styleElement) {
+		styleElement = document.createElement('style');
+		styleElement.id = styleId;
+		document.head.appendChild(styleElement);
+	}
 
-    // типизируем объект с базовыми размерами
-    const baseSizes: Record<string, number> = {
-    	baseline: 20,
+	// типизируем объект с базовыми размерами
+	const baseSizes: Record<string, number> = {
+		baseline: 20,
 		header: 24,
 		detail: 15,
 		body: 16,
@@ -82,20 +283,20 @@ function applyMaxFontSmooth(percent: number) { // Явно указываем : 
 	};
 
 	// с этим TS не будет ругаться на умножение
-	const baseLine     = (baseSizes.baseline * percent).toFixed(1);
+	const baseLine	 = (baseSizes.baseline * percent).toFixed(1);
 	const headerSize   = (baseSizes.header   * percent).toFixed(1);
 	const detailSize   = (baseSizes.detail   * percent).toFixed(1);
-	const bodySize     = (baseSizes.body     * percent).toFixed(1);
+	const bodySize	 = (baseSizes.body	 * percent).toFixed(1);
 	const bubbleSize   = (baseSizes.bubble   * percent).toFixed(1);
 	const markdownSize = (baseSizes.markdown * percent).toFixed(1);
 	const mdtitleSize  = (baseSizes.mdtitle  * percent).toFixed(1);
 	const smtitleSize  = (baseSizes.smtitle  * percent).toFixed(1);
-	const tagSize      = (baseSizes.tag      * percent).toFixed(1);
-	const labelSize    = (baseSizes.label    * percent).toFixed(1);
-	const inputSize    = (baseSizes.input    * percent).toFixed(1);
-    const lhCoeff      = 1.3;
+	const tagSize	  = (baseSizes.tag	  * percent).toFixed(1);
+	const labelSize	= (baseSizes.label	* percent).toFixed(1);
+	const inputSize	= (baseSizes.input	* percent).toFixed(1);
+	const lhCoeff	  = 1.3;
 
-    styleElement.textContent = `
+	styleElement.textContent = `
 :root {
   --font-header-size: ${headerSize}px !important;
   --font-detail-size: ${detailSize}px !important;
@@ -123,9 +324,9 @@ function applyMaxFontSmooth(percent: number) { // Явно указываем : 
   --font-description-size: 13px !important;
 }
 
-    `;
-    
-    localStorage.setItem('max-font-scale', percent.toString());
+	`;
+	
+	localStorage.setItem('max-font-scale', percent.toString());
 } //*/
 
 ////////////////////////////////////////
@@ -234,7 +435,7 @@ if (process.contextIsolated) {
 					currentFontPercent = 1;
 					const el = document.getElementById('electron-font-smooth-override');
 					if (el) el.remove();
-    			}
+				}
  			}
 		});//*/
 
@@ -270,14 +471,48 @@ if (process.contextIsolated) {
 					// если через Canvas не вышло, пробуем старый метод
 					ipcRenderer.send('copy-image-to-clipboard', img.src);
 				};
-    		}
+			}
 		}, true);
+
+		//////////////////////////////////////////////////
+		// по CTRL+S имитируем нажатие на кнопку "Скачать"
+		// в просмотрщике, чтобы скачивать, без мышки
+		document.addEventListener('keydown', (event: KeyboardEvent) => {
+			const isCtrlS = (event.ctrlKey || event.metaKey) && event.code === 'KeyS';
+
+			if (isCtrlS) {
+				// мы в просмотрщике?
+				const viewer = document.querySelector('[class*="mover"]');
+				if (viewer) {
+					// ищем кнопку "скачать"
+					const downloadSpan = document.querySelector('button[aria-label*="Скачать"] span.text') as HTMLElement | null;
+
+					if (downloadSpan) {
+//						event.preventDefault(); // остановить нативное сохранение
+//						event.stopImmediatePropagation(); // помешать другим скриптам перехватить нажатие
+						downloadSpan.click();
+//						console.log('[Electron] Media download triggered via Span click');
+					}
+				}
+			}
+		}, true);//*/
+
+		///////////////////////////////////////////////////
+		// попытаемся отработать сворачивание в трей по Esc
+		document.addEventListener('keydown', (event: KeyboardEvent) => {
+			const isEsc = event.code === 'Escape';
+			if (isEsc) {
+				// чат закрыт?
+				const emptyState = document.querySelector('[class*="emptyState"]');
+				if (emptyState) ipcRenderer.send('hide-by-esc'); // сворачиваемся
+			}
+		}, true);//*/
 
 		////////////////////////////////////////////////////////////////////////
 		// здесь пляски с бубном и куртизатнками вокруг МАХовского контекстного
 		// меню по пунктику "Вставить", чтобы научить вставлять картинки
 
-		// глядим, чего под мышкой, прячем меню
+		// глядим, чего под мышкой
 		window.addEventListener('mousedown', (e) => {
 			const target = e.target as HTMLElement;
 			const btn = target.closest('button.actionsMenuItem');

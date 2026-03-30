@@ -187,15 +187,32 @@ export default class TrayModule extends Module {
 			}
 		]);
 
-		this.tray.setContextMenu(menu);
+		if (process.platform === 'darwin') {
+			const mainMenu = Menu.buildFromTemplate([ 
+				{
+					label: app.name,
+					submenu: menu
+				}
+			]);
+			//this.window.
+			Menu.setApplicationMenu(mainMenu);
+		}
+
+		if (process.platform !== 'darwin') {
+			this.tray.setContextMenu(menu);
+		}
+
 		this.tray.setToolTip(ttMAX);
 		this.tray.on("click", (/*event, bounds*/) => {
-			if (process.platform !== 'darwin') { this.onClickShowHide(); }
+//			if (process.platform !== 'darwin') { this.onClickShowHide(); }
+			this.onClickShowHide();
 		});
-		this.tray.on('right-click', () => {
-			this.tray.setContextMenu(menu);
-			this.tray.popUpContextMenu(menu);
-		});	
+		if (process.platform !== 'darwin') {
+			this.tray.on('right-click', () => {
+				this.tray.setContextMenu(menu);
+				this.tray.popUpContextMenu(menu);
+			});
+		}
 	}
 
 	public override onLoad() {
