@@ -116,7 +116,7 @@ Please uncheck checkBox in About dialog (because it's block All videos and audio
 - slightly improved the issue with increasing/decreasing font size in chats—line spacing is now taken into account.
 ### v1.0.4-11
 - While in the media viewer, you can save media using the **Ctrl+S** keyboard shortcut;
-- Pressing **Esc** minimizes the application to the tray (provided we're not in the chat feed);
+- Pressing **ESC** now closes chat, profile settings, etc. When reaching empty space, **ESC** minimizes the application to the tray.
 You can also minimize the application to the tray (under any circumstances) using the **Ctrl+W** keyboard shortcut;
 - Another attempt to stop video playback in the chat feed (not perfect, but better than before);
 - [Win10/11] When exiting the application, the shortcut in *%APPDATA%\Roaming\Microsoft\Windows\StartMenu\Programs* is deleted;
