@@ -122,3 +122,5 @@ You can also minimize the application to the tray (under any circumstances) usin
 - [Win10/11] When exiting the application, the shortcut in *%APPDATA%\Roaming\Microsoft\Windows\StartMenu\Programs* is deleted;
 (If you don't need this shortcut at all, you can use the Win7 version - in my experience, this version doesn't create a shortcut)
 - [MacOS] The tray menu has moved to the main panel and now "lives" next to the Apple icon (left-clicking the tray icon to show/hide the application)
+### v1.0.4-12
+- Now the contents of an open chat are stretched to the full width when the window is large.
