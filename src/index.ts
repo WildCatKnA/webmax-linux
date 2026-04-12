@@ -1,8 +1,11 @@
 import { app } from 'electron';
+import MainApp from './mainapp';
 
 const path = require('path');
 const fs = require('fs');
 const { systemPreferences } = require('electron');
+
+let portable = false;
 
 /////////////////////////////////////////////////////////////////
 // переключаем пути к данным, если рядом с исполняемым файлом 
@@ -25,6 +28,7 @@ if (process.platform !== 'darwin') {
 	if (fs.existsSync(path.join(exeDir, 'is_portable.txt'))) {
 		if (isWritable(exeDir)) {
 			// переключаемся на Portable
+			portable = true;
 			const portableDataPath = path.join(exeDir, 'data');
 			app.setPath('userData', portableDataPath);
 			app.setPath('sessionData', portableDataPath);
@@ -32,6 +36,7 @@ if (process.platform !== 'darwin') {
 		} else {
 			// облом, оставляем %AppData%
 			console.error("Нет прав на запись в папку приложения. Используется стандартный путь.");
+			portable = false;
 		}
 	}
 }
@@ -53,7 +58,6 @@ if (process.platform === 'darwin') {
 }// */
 
 /////////////////////////////////////////////////////////////////
-import MainApp from './mainapp';
 
 if (!app.requestSingleInstanceLock()) {
     app.quit();
@@ -67,4 +71,4 @@ if (process.platform === 'win32') {
 	app.commandLine.appendSwitch('force-color-profile', 'srgb');
 }
 
-app.whenReady().then(() => new MainApp().init());
+app.whenReady().then(() => new MainApp().init(portable));

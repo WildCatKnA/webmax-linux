@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer, webFrame } from "electron";
 const api = {};
 const { dialog } = require('electron');
 
+//const originalSetSinkId = HTMLAudioElement.prototype.setSinkId;
 ///////////////////////////////////////////
 
 
@@ -324,6 +325,7 @@ function applyMaxFontSmooth(percent: number) { // Явно указываем : 
   --font-description-size: 13px !important;
 }
 
+
 	`;
 	
 	localStorage.setItem('max-font-scale', percent.toString());
@@ -406,12 +408,13 @@ if (process.contextIsolated) {
 		window.addEventListener('DOMContentLoaded', () => {
 			observer.observe(document.body, { childList: true, subtree: true });
 		});//*/
-		///////////////////////////////////////////
+		////////////////////////////////////////////////////
 
 
-		///////////////////////////////////////////
 
 
+
+		////////////////////////////////////////////////////
 		// применяем настройки шрифтов при загрузке страницы
 		window.addEventListener('DOMContentLoaded', () => {
 			if (currentFontPercent != 1) applyMaxFontSmooth(currentFontPercent);
@@ -438,7 +441,6 @@ if (process.contextIsolated) {
 				}
  			}
 		});//*/
-
 
 		///////////////////////////////////////////////////
 		// махинации с копированием картинки по нажатию ПКМ
@@ -474,6 +476,8 @@ if (process.contextIsolated) {
 			}
 		}, true);
 
+
+
 		//////////////////////////////////////////////////
 		// по CTRL+S имитируем нажатие на кнопку "Скачать"
 		// в просмотрщике, чтобы скачивать, без мышки
@@ -502,9 +506,16 @@ if (process.contextIsolated) {
 		document.addEventListener('keydown', (event: KeyboardEvent) => {
 			const isEsc = event.code === 'Escape';
 			if (isEsc) {
-				// чат закрыт?
+				// мы "на пустом месте"? (чат/профиль закрыт)
 				const emptyState = document.querySelector('[class*="emptyState"]');
 				if (emptyState) ipcRenderer.send('hide-by-esc'); // сворачиваемся
+				else {
+					// пробуем найти кнопку "Назад", если мы где-нибудь в чате
+					const backButton = document.querySelector('button.backBtn.button') as HTMLElement | null;
+					if (backButton) backButton.click();
+					// или пробуем перейти "назад по истории" (как правило, если мы в настройках профиля)
+					else if (window.history.length > 1) window.history.back();
+				}
 			}
 		}, true);//*/
 
@@ -549,18 +560,22 @@ if (process.contextIsolated) {
 		
 		////////////////////////////////////////////////////////////////////////
 
+
 	} catch (error) {
 		console.error(error);
 	}
+
 
 } else {
 //	window.electron = electronAPI;
 //	window.api = api;
 }
 
+/*
+
 // кажись, до этого момента не доходит, хотя сохранялка работает... пока оставим
 contextBridge.exposeInMainWorld('electronAPI', {
 	onDownloadComplete: (callback) => ipcRenderer.on('dl-complete', (event, data) => callback(data))
 });
 
-overrideNotification();
+overrideNotification(); //*/

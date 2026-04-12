@@ -8,6 +8,18 @@ declare global {
 	}
 }
 
+declare global {
+  interface HTMLAudioElement {
+    setSinkId(deviceId: string): Promise<void>;
+    sinkId: string;
+  }
+}
+
+interface AudioSettings {
+  outputId?: string;
+  inputId?: string;
+}
+
 interface UserActivation {
 	readonly hasBeenActive: boolean;
 	readonly isActive: boolean;
@@ -16,3 +28,4 @@ interface UserActivation {
 interface Navigator {
 	readonly userActivation: UserActivation;
 }
+

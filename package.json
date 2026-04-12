@@ -1,7 +1,7 @@
 {
 	"name": "webmax",
 	"productName": "webmax",
-	"version": "1.0.4-11",
+	"version": "1.0.4-12",
 	"description": "WebMax for Linux (unofficial)",
 	"main": "dist/index.js",
 	"scripts": {

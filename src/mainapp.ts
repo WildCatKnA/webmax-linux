@@ -31,9 +31,10 @@ const globalStore = {
 };
 //*/
 
-const dloadSetting = new Settings("download");
-const spellSetting = new Settings("spell");
-
+const dloadSetting   = new Settings("download");
+const spellSetting   = new Settings("spell");
+const dontaskSetting = new Settings("dontask");
+const audioSetting   = new Settings("audio");
 //////////////////////////////////////////////////
 
 const { dialog } = require('electron');
@@ -45,23 +46,33 @@ let pickerWin: BrowserWindow | null = null;
 let isHidden = false;
 let saveTimeout;
 let bckGround;//: string;
+
 //let pendingSavePath: string | null = null;
 const pendingDownloads = new Map<string, string>();
+
+
 //////////////////////////////////
 const checkArchitecture = () => {
 	const isApp32 = process.arch === 'ia32';
 	const isOs64 = process.env.PROCESSOR_ARCHITEW6432 !== undefined || process.arch === 'x64' || process.env.PROCESSOR_ARCHITECTURE === 'AMD64';
 
 	if (isApp32 && isOs64) {
-		dialog.showMessageBoxSync({
-			type: 'warning',
-			title: 'MAX',
-			message: 'Вы запустили 32-битную версию приложения на 64-битной системе.',
-			detail: 'Для лучшей производительности рекомендуется использовать x64 версию.',
-			buttons: ['Понятно']
-        });
+		const askMe = dontaskSetting.get("dontAskOnStart", false);
+		if (!askMe){
+			const question = dialog.showMessageBoxSync({
+				type: 'warning',
+				title: 'MAX',
+				message: 'Вы запустили 32-битную версию приложения на 64-битной системе.',
+				detail: 'Для лучшей производительности рекомендуется использовать x64 версию.',
+				buttons: ['Понятно', 'Больше не спрашивать'],
+				defaultId: 0,
+				cancelId: 0
+			});
+			if (question === 1) dontaskSetting.set("dontAskOnStart", true);
+			else dontaskSetting.set("dontAskOnStart", false); 
+		}
     }
-};
+};//*/
 ////////////////////////////////
 
 export default class MainApp {
@@ -72,6 +83,7 @@ export default class MainApp {
 	public openFldr = true;
 	public spellChecking = false;
 	public fullscrView = false;
+	public portable = false;
 	private cssKey: string | null = null;
 
 	constructor() {
@@ -114,8 +126,11 @@ this.window.webContents.insertCSS(`
 [class*="media"] { background: #000000 !important; }
 [class*="videoLayer"] video { background: #000000; !important; border: none !important; }
 [class*="settings"] { -webkit-user-select: none !important; user-select: none !important; }
+//img.image[style*="object-fit: cover"] { object-fit: contain !important; }
 //.navigation, aside, topbar, .openedChat { -webkit-user-select: none !important; user-select: none !important; }
 .navigation, aside, topbar { -webkit-user-select: none !important; user-select: none !important; }
+[class*="history"] { --max-content-width: 96% !important; }
+[class*="composer"] { width: 100% !important; max-width:100% !important; }
 `).catch(err => console.error('CSS Injection failed:', err)); //*/
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -264,9 +279,12 @@ this.window.webContents.insertCSS(`
 
 	}
 	
-	public init() {
-		// закомментировать - уведомления могут не работать
-		app.setAppUserModelId('WebMax Desktop'); 
+	public init(port: boolean) {
+//		console.log('portable: ', port);
+		this.portable = port;
+		
+		// если закомментировать - уведомления могут не работать
+		app.setAppUserModelId('WebMax Desktop');
 
 		// чтоб не создавался ключ в реестре
 		// (HKEY_CURRENT_USER\Software\Classes\max),
@@ -480,7 +498,7 @@ this.window.webContents.insertCSS(`
 		// подчищаем за собой в Windows/StartMenu
 		// (пытаемся удалить ярлык для уведомлений)
 		app.on('will-quit', () => {
-			if (process.platform === 'win32') {
+			if (process.platform === 'win32' && this.portable) {
 				const shortcutName = `${app.name}.lnk`; 
 				const shortcutPath = path.join(
 					process.env.APPDATA || '', 
@@ -497,7 +515,6 @@ this.window.webContents.insertCSS(`
 			}
 		});
 
-
 		this.window.webContents.on('enter-html-full-screen', () => {
 			this.window.setFullScreen(true);
 		});
@@ -508,12 +525,12 @@ this.window.webContents.insertCSS(`
 
 		this.window.on('resize', () => {
 			//this.moduleManager.onQuit();
-			this.saveWinState();
+			if (!this.window.isMaximized() || !this.window.isFullScreen()) this.saveWinState();
 		});
 
 		this.window.on('move', () => {
 			//this.moduleManager.onQuit();
-			this.saveWinState();
+			if (!this.window.isMaximized() || !this.window.isFullScreen()) this.saveWinState();
 		});
 		// */
 
@@ -664,6 +681,9 @@ this.window.webContents.insertCSS(`
 				ipcMain.on("download-cancel", handleCancel);
 			});
 		});
+		///////////////////////////////////////////////
+		
+
 		///////////////////////////////////////////////
 
 	}
