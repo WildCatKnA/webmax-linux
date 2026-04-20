@@ -114,6 +114,7 @@ Please uncheck checkBox in About dialog (because it's block All videos and audio
 ### v1.0.4-10
 - Images are now saved in JPEG format;
 - slightly improved the issue with increasing/decreasing font size in chats—line spacing is now taken into account.
+
 ### v1.0.4-11
 - While in the media viewer, you can save media using the **Ctrl+S** keyboard shortcut;
 - Pressing **ESC** now closes chat, profile settings, etc. When reaching empty space, **ESC** minimizes the application to the tray.
@@ -122,5 +123,14 @@ You can also minimize the application to the tray (under any circumstances) usin
 - [Win10/11] When exiting the application, the shortcut in *%APPDATA%\Roaming\Microsoft\Windows\StartMenu\Programs* is deleted;
 (If you don't need this shortcut at all, you can use the Win7 version - in my experience, this version doesn't create a shortcut)
 - [MacOS] The tray menu has moved to the main panel and now "lives" next to the Apple icon (left-clicking the tray icon to show/hide the application)
+
 ### v1.0.4-12
 - Now the contents of an open chat are stretched to the full width when the window is large.
+
+### v1.0.4-13
+- Navigation (scrolling) with the PgUp/PgDn keys in chat
+If there is no active chat, navigate the chat list (second segment of the window). You can also use the up/down arrow keys.
+- Fixed an issue with clicking "Add Chats" in the "New" tab. Previously, the application window would minimize to the tray (thanks to the MAX authors for this behavior).
+- Added another condition to the "number of unread chats" section. Hopefully, if all read chats are actually read, the tray icon will show zero.
+- Fixed the window behavior when clicking the "X" ("close window").
+
