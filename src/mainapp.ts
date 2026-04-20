@@ -80,6 +80,7 @@ export default class MainApp {
 	private readonly window: BrowserWindow;
 	private readonly moduleManager: ModuleManager;
 	public quitting = false;
+	public canCloseMe = false;
 	public openFldr = true;
 	public spellChecking = false;
 	public fullscrView = false;
@@ -93,8 +94,8 @@ export default class MainApp {
 			icon: path.join(app.getAppPath(), "assets/", process.platform === 'win32' ? "app.ico":"mainapp.png"),
 			width: 1200,
 			height: 800,
-			minWidth: 800,
-			minHeight: 600,
+			minWidth: 320,//800,
+			minHeight: 240,//600,
 			backgroundColor: bckGround,
 			show: false,
 			autoHideMenuBar: true,
@@ -116,7 +117,6 @@ export default class MainApp {
 //		if (process.versions.electron.startsWith('21.')) {
 //			this.window.webContents.insertCSS('.aside, .openedChat { height: 100vh; display: flex; flex-direction: column; }  ');
 //		}
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // тут пытаемся "подправить" фон в просмотрщике и прочую лабуду
@@ -553,9 +553,17 @@ this.window.webContents.insertCSS(`
 		////////////////////////////////////////
 		// сворачиваемся по Esc, если чат закрыт
 		ipcMain.on('hide-by-esc', (event) => {
+//			dialog.showMessageBox({message: "canHide: ", canHide});
 			event.preventDefault(); // чтобы не выполнялись иные действия, проигнорим их
+			this.canCloseMe = true;
 			this.window.hide();
+			this.canCloseMe = false;
 		});
+
+/*
+ipcMain.on('allow-my-close', () => {
+    this.canCloseMe = true;
+});//*/
 
 		///////////////////////////////////////////
 		// махинации с просмотрщиком

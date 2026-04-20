@@ -507,8 +507,16 @@ if (process.contextIsolated) {
 			const isEsc = event.code === 'Escape';
 			if (isEsc) {
 				// мы "на пустом месте"? (чат/профиль закрыт)
+//				const addChats = document.querySelector('button.button--accent-primary[aria-label="Добавить чаты"]');
 				const emptyState = document.querySelector('[class*="emptyState"]');
-				if (emptyState) ipcRenderer.send('hide-by-esc'); // сворачиваемся
+//				const emptyState = !!document.querySelector('.emptyState');
+//				const emptySvelte = document.querySelector('[class*="empty.Svelte"]');
+//				const addChats = !!document.querySelector('button[aria-label="Добавить чаты"]');
+//				if (emptyState && !addChats) window.electronAPI.hideWindow();
+				if (emptyState) {// && !emptySvelte) {
+//					console.log('Esc нажат (3й сегмент - emptyState)');
+					ipcRenderer.send('hide-by-esc'); // сворачиваемся
+				}
 				else {
 					// пробуем найти кнопку "Назад", если мы где-нибудь в чате
 					const backButton = document.querySelector('button.backBtn.button') as HTMLElement | null;
@@ -518,6 +526,102 @@ if (process.contextIsolated) {
 				}
 			}
 		}, true);//*/
+
+		//////////////////////////////////////
+		// скроллинг клавишами PgUp/PgDn
+		// в открытом чате или втором сегменте
+		// окна (если чат закрыт (emptyState)
+		document.addEventListener('keydown', (event: KeyboardEvent) => {
+			const { key } = event;
+			const isPgUp = key === 'PageUp';
+			const isPgDown = key === 'PageDown';
+			const isArrowUp = key === 'ArrowUp';
+			const isArrowDown = key === 'ArrowDown';
+			if (!isPgUp && !isPgDown && !isArrowUp && !isArrowDown) return;
+
+			// мы в поле ввода?
+			const activeEl = document.activeElement;
+			const isTyping = activeEl && (
+				activeEl.tagName === 'INPUT' || 
+				activeEl.tagName === 'TEXTAREA' || 
+				(activeEl as HTMLElement).isContentEditable
+			);
+
+			const isEmptyState = !!document.querySelector('.emptyState');
+
+			// поиск скролл-контейнера
+			const findScrollable = (el: Element): Element | null => {
+				const style = window.getComputedStyle(el);
+				const isScrollable = /(auto|scroll)/.test(style.overflowY + style.overflow);
+				if (isScrollable && el.scrollHeight > el.clientHeight) return el;
+				for (const child of Array.from(el.children)) {
+					const found = findScrollable(child);
+					if (found) return found;
+				}
+				return null;
+			};
+
+			// второй сегмент (список чатов)
+			if (isEmptyState) {
+				// ищем либо .cropped, либо любой подходящий сайдбар (левую панель)
+				const sideBar = document.querySelector('.cropped') || document.querySelector('aside');
+				if (!sideBar) return;
+
+				// нажаты стрелки — переносим фокус
+				if (isArrowUp || isArrowDown) {
+					if (!sideBar.contains(activeEl)) {
+						const firstChat = sideBar.querySelector('a, button, [role="button"], [tabindex="0"]');
+						(firstChat as HTMLElement)?.focus();
+					}
+					return;
+				}
+
+				// нажаты PgUp/PgDown — листаем список
+				if (isPgUp || isPgDown) {
+					// если findScrollable не находит внутри .cropped, пробуем сам .cropped
+					const scrollContainer = findScrollable(sideBar) || sideBar;
+
+					if (scrollContainer) {
+						const direction = isPgUp ? -1 : 1;
+						const scrollAmount = scrollContainer.clientHeight * 0.8;
+
+						scrollContainer.scrollBy({
+							top: scrollAmount * direction,
+							behavior: 'smooth'
+						});
+
+						event.preventDefault();
+						event.stopPropagation();
+					}
+				}
+			}
+
+			// третий сегмент (открытый чат)
+			else {
+				const chat = document.querySelector('.openedChat');
+				if (!chat) return;
+
+				// печатаем, значит стрелки не трогаем. но PgUp/PgDown — всегда листают чат
+				if (isTyping && (isArrowUp || isArrowDown)) return;
+
+				const scrollContainer = findScrollable(chat);
+				if (scrollContainer) {
+					const direction = (isArrowUp || isPgUp) ? -1 : 1;
+					const scrollAmount = (isArrowUp || isArrowDown) 
+						? 100 
+						: scrollContainer.clientHeight * 0.7;
+
+					scrollContainer.scrollBy({
+						top: scrollAmount * direction,
+						behavior: 'smooth'
+					});
+
+					event.preventDefault();
+					event.stopPropagation();
+				}
+			}
+		}, true);
+
 
 		////////////////////////////////////////////////////////////////////////
 		// здесь пляски с бубном и куртизатнками вокруг МАХовского контекстного

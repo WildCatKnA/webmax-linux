@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, MenuItem, Tray, Notification, /*ipcMain*/ } from "electron";
+import { app, screen, BrowserWindow, Menu, MenuItem, Tray, Notification, /*ipcMain*/ } from "electron";
 import { getUnreadMessages, getMyOSVersion } from "../util";
 
 const { dialog, nativeImage } = require('electron');
@@ -273,15 +273,54 @@ export default class TrayModule extends Module {
 ////////////////////////////////////////////////////////////////////////////////
 
 	private registerListeners() {
-		this.window.on("close", event => {
+/*		this.window.on("close", event => {
+
+			if (this.MainApp.quitting) return;
+			if (!this.MainApp.canCloseMe) {
+				event.preventDefault();
+			} else {
+				event.preventDefault();
+				this.MainApp.canCloseMe = false;
+				this.window.hide();
+			}
+		});//*/
+
+		this.window.on("close", (event) => {
 			if (this.MainApp.quitting) return;
 
-			event.preventDefault();
-			this.window.hide();
+			const bounds = this.window.getBounds();
+			const { x, y } = screen.getCursorScreenPoint();
+
+			// всё, что НЕ заголовок и НЕ края — это сайт
+			const headerHeight = 35; // высота стандартной рамки окна
+
+			const isInsideContent = 
+				x > bounds.x && x < (bounds.x + bounds.width) &&
+				y > (bounds.y + headerHeight) && y < (bounds.y + bounds.height);
+
+			// если мышь НЕ в контенте (значит, она на рамке/крестике/вне окна)
+			const shouldHide = this.MainApp.canCloseMe || !isInsideContent;
+
+//			// Дебаг в DevTools
+//			this.window.webContents.executeJavaScript(
+//				`console.log("Close trigger. Inside content: ${isInsideContent}. User action: ${shouldHide}")`
+//			);
+
+			if (shouldHide) {
+				event.preventDefault();
+				this.MainApp.canCloseMe = false;
+				this.window.hide();
+//				console.log("Окно скрыто (действие вне контента сайта)");
+			} else {
+				event.preventDefault();
+//				console.log("Сайт попытался закрыть окно, пока мышь была внутри него. Блокируем.");
+			}
 		});
 
 		this.window.on('page-title-updated', async (event, title) => {
-			unread = getUnreadMessages(title);
+			if (title !== "MAX") {
+				unread = getUnreadMessages(title);
+			} else unread = 0;
 			if (unread !== 0) { // или таки >0 ?
 				////////////////////////////////
 				if (unread !== this.lastCount) {
