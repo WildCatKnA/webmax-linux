@@ -134,3 +134,8 @@ If there is no active chat, navigate the chat list (second segment of the window
 - Added another condition to the "number of unread chats" section. Hopefully, if all read chats are actually read, the tray icon will show zero.
 - Fixed the window behavior when clicking the "X" ("close window").
 
+### v1.0.4-14
+- Fixed saving config file when using Portable-version;
+- If using Portable-version then you may launch more than one instance of App (make sure you're launch App from other folders);
+- To notify about turning spell checking on/off, a message pops up inside the application window.
+
