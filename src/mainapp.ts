@@ -2,19 +2,20 @@ import { app, session, desktopCapturer, BrowserWindow, nativeImage, net, Notific
 import HotkeyModule from "./module/hotkey-module";
 import ModuleManager from "./module/module-manager";
 import TrayModule from "./module/tray-module";
-import WindowSettingsModule from "./module/window-settings-module";
-import { getUnusedPath } from "./util";
+//import WindowSettingsModule from "./module/window-settings-module";
+import { getUnusedPath, showWebToast } from "./util";
 //import { convertWebpToJpegInRenderer } from "./util";
 import Settings from "./settings";
 import { existsSync, createWriteStream, unlink } from "fs";
 import Store from "electron-store";
 import { get } from "https";
 
+/*
 const store = new Store({
 	name: "globalStore",
 	clearInvalidConfig: true
 });
-///*
+/*
 const globalStore = {
 	has(key) {
 		return store.has(key);
@@ -31,16 +32,26 @@ const globalStore = {
 };
 //*/
 
-const dloadSetting   = new Settings("download");
-const spellSetting   = new Settings("spell");
-const dontaskSetting = new Settings("dontask");
-const audioSetting   = new Settings("audio");
+/*
+const dloadSetting   = new Settings("download", app.getPath('userData'));
+const spellSetting   = new Settings("spell",    app.getPath('userData'));
+const dontaskSetting = new Settings("dontask",  app.getPath('userData'));
+//const downloadsStore = new Store();
+//const audioSetting   = new Settings("audio"); //*/
+
+//*
+let dloadSetting: Settings;
+let spellSetting: Settings;
+let dontaskSetting: Settings;
+let windowSetting: Settings;
+//const downloadsStore: Settings;
+//const audioSetting: Settings;//*/
+
 //////////////////////////////////////////////////
 
 const { dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const downloadsStore = new Store();
 let pickerWin: BrowserWindow | null = null;
 //let viewerWin: BrowserWindow | null = null;
 let isHidden = false;
@@ -84,10 +95,47 @@ export default class MainApp {
 	public openFldr = true;
 	public spellChecking = false;
 	public fullscrView = false;
-	public portable = false;
+	private isPortable: boolean;// = false;
 	private cssKey: string | null = null;
 
-	constructor() {
+
+
+////////////////////////////////
+	public winShow(){
+		let defaults = this.window.getBounds();
+		const wb = windowSetting.get("bounds", defaults);
+
+		// костыль для линупсов, будь они прокляты...
+		// окно кажый  запуск смещается вниз (размеры
+		// и положение окна не  учитывают заголовок).
+		if (process.platform === 'linux') {
+			this.window.setBounds({ 
+				x: wb.x, y: wb.y - 32, width: wb.width, height: wb.height 
+			}); //*/
+		} else this.window.setBounds(wb);
+
+		if (windowSetting.get("maximized", false)) {
+			this.window.maximize();
+		}
+		this.openFldr = windowSetting.get("show-folder", true);
+		this.fullscrView = windowSetting.get("fullscreenViewer", true); // linux or windows only
+	}
+
+	public winSave() {
+		windowSetting.set("maximized", this.window.isMaximized());
+
+		if (!this.window.isMaximized()) {
+			windowSetting.set("bounds", this.window.getNormalBounds());
+		}
+		windowSetting.set("show-folder", this.openFldr);
+		windowSetting.set("fullscreenViewer", this.fullscrView);
+}
+////////////////////////////////
+
+
+	constructor(portable: boolean) {
+//	constructor() {
+		this.isPortable = portable;//true;
 		bckGround = nativeTheme.shouldUseDarkColors ? "#25262d" : "#ffffff";
 		this.window = new BrowserWindow({
 			title: "MAX",
@@ -138,7 +186,7 @@ this.window.webContents.insertCSS(`
 		this.moduleManager = new ModuleManager([
 			new HotkeyModule(this, this.window)
 			, new TrayModule(this, this.window)
-			, new WindowSettingsModule(this, this.window)
+//			, new WindowSettingsModule(this, this.window, 'window', app.getPath('userData'))
 		]);
 
 		this.window.on("show", () => {
@@ -279,9 +327,16 @@ this.window.webContents.insertCSS(`
 
 	}
 	
-	public init(port: boolean) {
-//		console.log('portable: ', port);
-		this.portable = port;
+	public init() {
+	
+		windowSetting  = new Settings("window");
+		dloadSetting   = new Settings("download");//, app.getPath('userData'));
+		spellSetting   = new Settings("spell");//,    app.getPath('userData'));
+		dontaskSetting = new Settings("dontask");//,  app.getPath('userData'));	
+
+		console.log('portable:    ', this.isPortable);
+		console.log('userData:    ', app.getPath('userData'));
+		console.log('sessionData: ', app.getPath('sessionData'));
 		
 		// если закомментировать - уведомления могут не работать
 		app.setAppUserModelId('WebMax Desktop');
@@ -313,18 +368,10 @@ this.window.webContents.insertCSS(`
 			this.window.webContents.session.setSpellCheckerEnabled(this.spellChecking);
 //			this.window.webContents.session.invalidateServiceWorkers();
 		}
-		const notify = new Notification({
-			title: 'MAX',
-			body: `Проверка орфографии ${this.spellChecking ? 'включена' : 'выключена'}.`,
-			icon: path.join(app.getAppPath(), "assets/", this.spellChecking ? "spell-on.png":"spell-off.png"),
-			silent: true,
-		});
-		notify.on('click', () => {
-			if (!this.window.isVisible()) this.window.show();
-			if (this.window.isMinimized()) this.window.restore();
-			this.window.focus();
-		});
-		notify.show();
+
+		let speelText = `Проверка орфографии ${this.spellChecking ? 'включена' : 'выключена'}.`;
+		showWebToast(speelText, this.window);
+		
 
 		session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
 			const allowedPermissions = ['fullscreen', 'notifications', 'media', 'audioCapture', 'clipboard-read', 'clipboard-sanitized-write']; 
@@ -431,6 +478,7 @@ this.window.webContents.insertCSS(`
 
 		this.moduleManager.beforeLoad();
 		this.moduleManager.onLoad();
+		this.winShow();
 		///////////////////////////////////////////////
 
 		//isHidden = process.argv.includes('--hidden');
@@ -447,13 +495,15 @@ this.window.webContents.insertCSS(`
 		spellSetting.set("spellCheck", this.spellChecking);
 		this.quitting = true;
 		this.moduleManager.onQuit();
+		this.winSave();
 		app.quit();
 	}
 
 	public saveWinState() {
 		clearTimeout(saveTimeout);
 		saveTimeout = setTimeout(() => {
-       		this.moduleManager.onQuit();
+//			this.moduleManager.onQuit();
+			this.winSave();
 		}, 500);
 	}
 
@@ -490,15 +540,17 @@ this.window.webContents.insertCSS(`
 
 	private registerListeners() {
 		app.on('second-instance', () => {
-			this.window.show();
-			this.window.focus();
+			if (!this.isPortable) {
+				this.window.show();
+				this.window.focus();
+			}
 		});
 
 		///////////////////////////////////////////
 		// подчищаем за собой в Windows/StartMenu
 		// (пытаемся удалить ярлык для уведомлений)
 		app.on('will-quit', () => {
-			if (process.platform === 'win32' && this.portable) {
+			if (process.platform === 'win32' && this.isPortable) {
 				const shortcutName = `${app.name}.lnk`; 
 				const shortcutPath = path.join(
 					process.env.APPDATA || '', 

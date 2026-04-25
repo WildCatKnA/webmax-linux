@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+body {
+  margin: 0;
+  padding: 0;
+  /* Полупрозрачный фон с размытием */
+  background: rgba(20, 20, 20, 0.7); 
+  backdrop-filter: blur(15px); 
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  color: white;
+  font-family: -apple-system, BlinkMacSystemFont, "Roboto", system-ui, Avenir, Helvetica, Arial, sans-serif;
+//  border: 1px solid rgba(255, 255, 255, 0.1); /* Тонкая рамка */
+//  border-radius: 12px; /* Скругление углов всего окна */
+  overflow: hidden;
+}
+
+:root {
+  --hover-color: rgba(255, 255, 255, 0.1);
+  --close-hover: #e81123;
+}
+
+#title-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 32px;
+  background: #00000000;
+  //background: #202020; /* Цвет Mica/Acrylic в темной теме */
+  color: white;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+//  user-select: none;
+}
+
+.drag-region {
+  flex-grow: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+  -webkit-app-region: drag;
+}
+
+#titlebar {
+  display: flex;
+  justify-content: space-between;
+  height: 32px;
+  background: #fff;
+  -webkit-app-region: drag;
+}
+
+.window-controls {
+  display: flex;
+  -webkit-app-region: no-drag;
+  transition: opacity 0.5s ease-in-out; /* Плавное исчезновение */
+  opacity: 1;
+}
+
+.window-controls.hidden {
+  opacity: 0;
+  pointer-events: none; /* Чтобы нельзя было нажать на невидимые кнопки */
+}
+
+.control-btn {
+  width: 46px;
+  height: 32px;
+  padding: 0;
+  display: flex; 
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: #f0f0f0;
+  outline: none;
+  transition: background 0.2s;
+}
+
+.control-btn svg {
+  flex-shrink: 0;
+//  display: inline-block;
+}
+
+.window-controls.inactive .control-btn {
+  color: #909090;
+}
+.control-btn:hover {
+  background: var(--hover-color);
+}
+
+.control-btn.close-btn:hover {
+  background: var(--close-hover) !important;
+}
+
+
+#container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+//  border: 1px solid rgba(255, 255, 255, 0.1); 
+//  border-radius: 12px;
+  padding: 20px;
+  padding-top: 10px;
+  padding-left: 20px;
+  padding-right: 20px;
+  padding-bottom: 40px;
+//  -webkit-app-region: drag;
+}
+
+img, video {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain; 
+  align-items: center;
+  justify-content: center;
+//  padding: 8px;
+//  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  user-select: none;
+  -webkit-user-drag: none;
+}
+</style>
+</head>
+<body>
+ <div id="title-bar">
+  <div class="drag-region"> </div>
+  <div class="window-controls" id="viewer">
+	<button class="control-btn" id="min-btn">
+	  <svg width="46" height="32" viewBox="0 0 46 32" fill="none" xmlns="http://www.w3.org">
+		<path d="M18 17H28" stroke="currentColor" stroke-width="1"/>
+	  </svg>
+	</button>
+
+	<button class="control-btn" id="max-btn">
+	  <svg class="maximize" width="46" height="32"  viewBox="0 0 46 32" fill="none" xmlns="http://www.w3.org" style="display:none">
+		  <rect x="18" y="11.5" width="9" height="9" fill="none" stroke="currentColor"/>
+	  </svg>
+	  <svg class="restore"  width="46" height="32"  viewBox="0 0 46 32" fill="none" xmlns="http://www.w3.org" style="display:inline-block">
+		 <path d="M18 13.5h6v6h-6z M20 11.5h7v6" fill="none" stroke="currentColor"/>
+	  </svg>
+	</button>
+
+	<button class="control-btn close-btn" id="close-btn">
+	  <svg width="46" height="32"  viewBox="0 0 46 32" fill="none" xmlns="http://www.w3.org">
+		  <path d="M18 11L28 21M28 11L18 21" stroke="currentColor" stroke-width="1"/>
+	  </svg>
+	</button>
+  </div>
+ </div>
+	
+	<div id="container">
+		<!-- тут контент -->
+	</div>
+
+
+	<script>
+		const { ipcRenderer } = require('electron');
+		const container = document.getElementById('container');
+		const controls = document.querySelector('.window-controls');
+		const titleBar = document.getElementById('title-bar');
+		const maxBtn = document.getElementById('max-btn');
+		const iconMax = maxBtn.querySelector('.maximize');
+		const iconRes = maxBtn.querySelector('.restore');
+
+		const header = document.getElementById('title-bar');
+
+		window.focus();
+
+
+let hideTimeout;
+
+// Функция для скрытия
+function hideControls() {
+    controls.classList.add('hidden');
+}
+
+// Функция для сброса таймера
+function resetTimer() {
+    controls.classList.remove('hidden'); // Показываем кнопки
+    clearTimeout(hideTimeout);           // Сбрасываем старый таймер
+    hideTimeout = setTimeout(hideControls, 3000); // Запускаем новый на 3 сек
+}
+
+// Слушаем движение мыши над всем баром управления
+//titleBar.onmousemove = resetTimer;
+resetTimer();
+
+		ipcRenderer.on('load-content', (event, data) => {
+			container.innerHTML = ''; // очистка
+			
+			if (data.type === 'image') {
+				const img = document.createElement('img');
+				img.src = data.url;
+				img.id = 'content';
+				container.appendChild(img);
+			} else {
+				const video = document.createElement('video');
+				video.src = data.url;
+				video.id = 'content';
+				video.controls = true;
+				video.autoplay = true; // здесь автоплей разрешен, это же просмотрщик!
+				container.appendChild(video);
+			}
+		});
+
+		document.getElementById('min-btn').onclick = () => ipcRenderer.send('win-min');
+		document.getElementById('close-btn').onclick = () => ipcRenderer.send('win-close');
+		document.getElementById('max-btn').onclick = () => ipcRenderer.send('win-max-res');
+		document.onmousemove = () => resetTimer();
+		document.getElementById('title-bar').onmousemove = (event) => {
+			console.log("mouse in titlebar: ",event.clientX, event.clientY);
+			resetTimer();
+		}
+
+		header.addEventListener('dblclick', (e) => {
+			e.preventDefault;
+			ipcRenderer.send('win-max-res'); 
+		});
+
+		document.addEventListener('keydown', (e) => {
+//			console.log('Key pressed:', e.key);
+
+			switch(e.key) {
+				case 'ArrowRight':
+					ipcRenderer.send('viewer-nav', 'next');
+					break;
+				case 'ArrowLeft':
+					ipcRenderer.send('viewer-nav', 'prev');
+					break;
+				case 'Escape':
+					ipcRenderer.send('window-close');
+					break;
+			}
+		});
+
+		window.addEventListener('blur', () => {
+			document.getElementById('viewer').classList.add('inactive');
+		});
+
+		window.addEventListener('focus', () => {
+			document.getElementById('viewer').classList.remove('inactive');
+		});
+
+		ipcRenderer.on('win-status', (event, isFullScreen) => {
+			if (isFullScreen) {
+				iconMax.style.display = 'none';
+				iconRes.style.display = 'inline-block';
+			} else {
+				iconMax.style.display = 'inline-block';
+				iconRes.style.display = 'none';
+		  }
+	});
+	</script>
+</body>
+</html>

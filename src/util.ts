@@ -1,4 +1,4 @@
-import { app, Tray, } from "electron";
+import { app, Tray, BrowserWindow } from "electron";
 import fs from "fs";
 import path from "path";
 
@@ -83,3 +83,48 @@ export function getMyOSVersion() {
 	return fullVer;
 }
 
+///////////////////////////////////////
+// уведомлялка внутри окна в приложении
+export function showWebToast(message: string, win: BrowserWindow): void {
+	const bgColor = 'rgba(32, 32, 32, 0.7)';
+
+	const jsCode = `
+(() => {
+  const toast = document.createElement("div");
+  toast.innerText = ${JSON.stringify(message)};
+			
+  toast.style.cssText = \`
+    position: fixed; 
+    top: 2px; 
+    left: -350px; 
+    background: ${bgColor};
+    color: white; 
+    padding: 12px 24px; 
+    border-radius: 0 12px 12px 0; 
+    z-index: 999999; 
+    font-family: sans-serif;
+    box-shadow: 4px 4px 12px rgba(0,0,0,0.15); 
+    transition: all 0.4s ease-out; 
+    opacity: 0;
+    pointer-events: none;
+  \`;
+			
+  document.body.appendChild(toast);
+
+  setTimeout(() => { 
+    toast.style.left = "0px"; 
+    toast.style.opacity = "1"; 
+  }, 50);
+
+  setTimeout(() => {
+    toast.style.left = "-350px"; 
+    toast.style.opacity = "0";
+    setTimeout(() => { toast.remove(); }, 500);
+  }, 3500);
+})();
+`;
+
+	if (win && win.webContents) {
+		win.webContents.executeJavaScript(jsCode);
+	}
+}

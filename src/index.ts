@@ -71,4 +71,5 @@ if (process.platform === 'win32') {
 	app.commandLine.appendSwitch('force-color-profile', 'srgb');
 }
 
-app.whenReady().then(() => new MainApp().init(portable));
+//app.whenReady().then(() => new MainApp().init());
+app.whenReady().then(() => new MainApp(portable).init());

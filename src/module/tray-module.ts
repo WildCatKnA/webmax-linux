@@ -1,5 +1,5 @@
 import { app, screen, BrowserWindow, Menu, MenuItem, Tray, Notification, /*ipcMain*/ } from "electron";
-import { getUnreadMessages, getMyOSVersion } from "../util";
+import { getUnreadMessages, getMyOSVersion, showWebToast } from "../util";
 
 const { dialog, nativeImage } = require('electron');
 //import sharp from 'sharp';
@@ -152,19 +152,8 @@ export default class TrayModule extends Module {
 					this.window.webContents.session.setSpellCheckerEnabled(this.MainApp.spellChecking);
 //					this.window.webContents.invalidateServiceWorkers();
 
-					const notify = new Notification({
-						title: 'MAX',
-						body: `Проверка орфографии ${this.MainApp.spellChecking ? 'включена' : 'выключена'}.`,
-						icon: path.join(this.MainApp.spellChecking ? SPELL_ON : SPELL_OFF),
-						silent: true,
-					});
-					notify.on('click', () => {
-						if (!this.window.isVisible()) this.window.show();
-						if (this.window.isMinimized()) this.window.restore();
-						this.window.focus();
-					});
-					notify.show();
-					console.log(`spellcheck: ${this.MainApp.spellChecking ? 'on' : 'off'}`);
+					let speelText = `Проверка орфографии ${this.MainApp.spellChecking ? 'включена' : 'выключена'}.`;
+					showWebToast(speelText, this.window);
 				}
 			},
 
@@ -194,7 +183,6 @@ export default class TrayModule extends Module {
 					submenu: menu
 				}
 			]);
-			//this.window.
 			Menu.setApplicationMenu(mainMenu);
 		}
 
@@ -416,5 +404,6 @@ export default class TrayModule extends Module {
         img.src = url;
         });`);
 	}	
+
 	////////////////////////////
 };
