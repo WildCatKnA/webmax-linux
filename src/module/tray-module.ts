@@ -45,7 +45,8 @@ export default class TrayModule extends Module {
 
 	constructor(
 		private readonly MainApp: MainApp,
-		private readonly window: BrowserWindow
+		private readonly form: BrowserWindow, 
+		private readonly window: any
 	) {
 		super();
 		this.tray = new Tray(ICON);
@@ -210,31 +211,31 @@ export default class TrayModule extends Module {
 ////////////////////////////////////////////////////////////////////////////////
 
 	private onClickShowHide() {
-		if (!this.window.isVisible()) {
-			this.window.show();
-			this.window.focus();
-		} else if (this.window.isMinimized()) {
-			this.window.restore();
-			this.window.focus();
+		if (!this.form.isVisible()) {
+			this.form.show();
+			this.form.focus();
+		} else if (this.form.isMinimized()) {
+			this.form.restore();
+			this.form.focus();
 		}
-		else if (this.window.isVisible()) {
+		else if (this.form.isVisible()) {
 			// в Windows при клике на трей-иконку фокус окна теряется, в Linux - нет
-			if(process.platform === 'linux' /*this.MainApp.focused*/ && !this.window.isFocused()) {
-				this.window.focus();
+			if(process.platform === 'linux' /*this.MainApp.focused*/ && !this.form.isFocused()) {
+				this.form.focus();
 			} else {
-				this.window.hide();
+				this.form.hide();
 			}
 		}
 		else {
-			this.window.show();
-			this.window.focus();
+			this.form.show();
+			this.form.focus();
 		}
 	}
 
 	private showAboutDlg() {
 		let appArch = (process.arch === 'ia32' ? 'x86' : process.arch);
 //		if (appArch === 'ia32') appArch='x86';
-		const about = dialog.showMessageBox(this.window, {
+		const about = dialog.showMessageBox(this.form, {
 			icon: ICON_ABOUT,
 			buttons: ['OK'],
 			title:  'О программе...',
@@ -273,14 +274,25 @@ export default class TrayModule extends Module {
 			}
 		});//*/
 
-		this.window.on("close", (event) => {
+/*		this.window.on("close", event => {
+			event.preventDefault();
+		});//*/
+	
+		this.form.on("close", event => {
 			if (this.MainApp.quitting) return;
+/*/			if (!this.MainApp.canCloseMe) {
+//				event.preventDefault();
+//			} else {
+				event.preventDefault();
+				this.MainApp.canCloseMe = false;
+				this.form.hide();
+//			} //*/
 
-			const bounds = this.window.getBounds();
+			const bounds = this.form.getBounds();
 			const { x, y } = screen.getCursorScreenPoint();
 
 			// всё, что НЕ заголовок и НЕ края — это сайт
-			const headerHeight = 35; // высота стандартной рамки окна
+			const headerHeight = 30;//35; // высота стандартной рамки окна
 
 			const isInsideContent = 
 				x > bounds.x && x < (bounds.x + bounds.width) &&
@@ -297,15 +309,17 @@ export default class TrayModule extends Module {
 			if (shouldHide) {
 				event.preventDefault();
 				this.MainApp.canCloseMe = false;
-				this.window.hide();
+				this.form.hide();
 //				console.log("Окно скрыто (действие вне контента сайта)");
 			} else {
 				event.preventDefault();
 //				console.log("Сайт попытался закрыть окно, пока мышь была внутри него. Блокируем.");
-			}
+			}//*/
 		});
 
-		this.window.on('page-title-updated', async (event, title) => {
+		this.window.webContents.on('page-title-updated', async (event, title) => {
+			this.form.setTitle(title);
+			if (process.versions.electron.startsWith('40.')) this.newTitle(this.form.getTitle());
 			if (title !== "MAX") {
 				unread = getUnreadMessages(title);
 			} else unread = 0;
@@ -313,7 +327,8 @@ export default class TrayModule extends Module {
 				////////////////////////////////
 				if (unread !== this.lastCount) {
 					this.lastCount = unread;
-					this.window.setTitle(title);
+					this.form.setTitle(title);
+					this.newTitle(title);
 					this.tray.setToolTip(title + " - MAX");
 					if (process.platform === 'darwin') {
 						this.tray.setImage(ICON_UNREAD);
@@ -331,8 +346,8 @@ export default class TrayModule extends Module {
 							const processedOvl = this.svgOverlay.replace(/\${count}/g, countText);
 							const overUrl = await this.renderSvg(unread.toString());
 							const oIcon = nativeImage.createFromDataURL(dataUrl)
-							try { this.window.setOverlayIcon(oIcon,String(unread)); }
-							catch { this.window.setOverlayIcon(nativeImage.createFromPath(OVERLAY),String(unread)); }
+							try { this.form.setOverlayIcon(oIcon,String(unread)); }
+							catch { this.form.setOverlayIcon(nativeImage.createFromPath(OVERLAY),String(unread)); }
 						}
 					}
 				}
@@ -348,7 +363,8 @@ export default class TrayModule extends Module {
 				}
 
 				if (process.platform === 'win32') {
-					this.window.setOverlayIcon(null, '');
+//					this.window.setOverlayIcon(null, '');
+					this.form.setOverlayIcon(null, '');
 				}
 
 			}
@@ -406,4 +422,12 @@ export default class TrayModule extends Module {
 	}	
 
 	////////////////////////////
+	private newTitle(title: string) {
+		this.form.webContents.executeJavaScript(`
+			if (document.getElementById('title-text')) {
+				document.getElementById('title-text').innerText = '${title}';
+			}
+		`);
+	}
+
 };

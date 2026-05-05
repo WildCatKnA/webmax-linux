@@ -1,4 +1,4 @@
-import { app, session, desktopCapturer, BrowserWindow, nativeImage, net, Notification, clipboard, nativeTheme, ipcMain, shell } from "electron";
+import { app, session, desktopCapturer, BrowserWindow, BrowserView,/* WebContentsView,*/ nativeImage, net, Notification, clipboard, nativeTheme, ipcMain, shell } from "electron";
 import HotkeyModule from "./module/hotkey-module";
 import ModuleManager from "./module/module-manager";
 import TrayModule from "./module/tray-module";
@@ -88,7 +88,9 @@ const checkArchitecture = () => {
 
 export default class MainApp {
 	
-	private readonly window: BrowserWindow;
+//	private readonly window: BrowserWindow;
+	private readonly form: BrowserWindow;
+	private readonly window: any;
 	private readonly moduleManager: ModuleManager;
 	public quitting = false;
 	public canCloseMe = false;
@@ -102,30 +104,40 @@ export default class MainApp {
 
 ////////////////////////////////
 	public winShow(){
-		let defaults = this.window.getBounds();
+		let defaults = this.form.getBounds();
+//		let yy = process.versions.electron.startsWith('22.') ? 0 : 30;
 		const wb = windowSetting.get("bounds", defaults);
 
 		// костыль для линупсов, будь они прокляты...
 		// окно кажый  запуск смещается вниз (размеры
 		// и положение окна не  учитывают заголовок).
 		if (process.platform === 'linux') {
-			this.window.setBounds({ 
-				x: wb.x, y: wb.y - 32, width: wb.width, height: wb.height 
+			this.form.setBounds({ 
+				x: wb.x, y: wb.y - 30, width: wb.width, height: wb.height 
 			}); //*/
-		} else this.window.setBounds(wb);
+		} else this.form.setBounds(wb);
+/*		if (process.versions.electron.startsWith('22.')) {
+			const ww = this.form.getContentSize();
+			this.window.setBounds({ x: 0, y: 0, width: ww[0], height: ww[1] });//, horizontal: true, vertical: true });
+//			this.window.setAutoResize({ width: true, height: true, horizontal: true, vertical: true });
+		} else {
+			this.window.setBounds({x: 0, y: yy, width: wb.width, height: wb.height - yy});
+		}//*/
+		const ww = this.form.getContentSize();
+		this.window.setBounds({ x: 0, y: 0, width: ww[0], height: ww[1] });//, horizontal: true, vertical: true });
 
 		if (windowSetting.get("maximized", false)) {
-			this.window.maximize();
+			this.form.maximize();
 		}
 		this.openFldr = windowSetting.get("show-folder", true);
 		this.fullscrView = windowSetting.get("fullscreenViewer", true); // linux or windows only
 	}
 
 	public winSave() {
-		windowSetting.set("maximized", this.window.isMaximized());
+		windowSetting.set("maximized", this.form.isMaximized());
 
-		if (!this.window.isMaximized()) {
-			windowSetting.set("bounds", this.window.getNormalBounds());
+		if (!this.form.isMaximized()) {
+			windowSetting.set("bounds", this.form.getNormalBounds());
 		}
 		windowSetting.set("show-folder", this.openFldr);
 		windowSetting.set("fullscreenViewer", this.fullscrView);
@@ -135,9 +147,21 @@ export default class MainApp {
 
 	constructor(portable: boolean) {
 //	constructor() {
+		const bounds = { x: 0, y: 0, width: 1200, height: 800 };
+		const viewPrefs = {
+			webPreferences: {
+				preload: path.join(__dirname, 'preload.js'),
+				spellcheck: true, //this.spellChecking,//false,
+//				autoplayPolicy: 'user-gesture-required',
+//				nodeIntegration: false,
+				contextIsolation: true, // if false - native Notification override in preload
+				sandbox: false
+			}
+		}
 		this.isPortable = portable;//true;
 		bckGround = nativeTheme.shouldUseDarkColors ? "#25262d" : "#ffffff";
-		this.window = new BrowserWindow({
+//		this.window = new BrowserWindow({
+		this.form = new BrowserWindow({
 			title: "MAX",
 			icon: path.join(app.getAppPath(), "assets/", process.platform === 'win32' ? "app.ico":"mainapp.png"),
 			width: 1200,
@@ -147,17 +171,59 @@ export default class MainApp {
 			backgroundColor: bckGround,
 			show: false,
 			autoHideMenuBar: true,
-
+/*			frame: false,
+			titleBarStyle: 'hidden',
+			// критично для Linux:
+			titleBarOverlay: {
+				height: 30,
+				color: bckGround, // цвет фона под кнопками
+				symbolColor: '#ffffff' // цвет самих иконок
+			}, //*/
 			webPreferences: {
+//				nodeIntegration: false,
+				contextIsolation: true
+//				, preload: path.join(__dirname, 'preload.js'),
+			}
+/*			webPreferences: {
 				preload: path.join(__dirname, 'preload.js'),
 				spellcheck: true, //this.spellChecking,//false,
-//				autoplayPolicy: 'user-gesture-required',
+				autoplayPolicy: 'user-gesture-required',
 				contextIsolation: true, // if false - native Notification override in preload 
 				sandbox: false
-			}
+			}//*/
 		});
+//		this.form.loadFile(path.join(__dirname, 'mainapp.html'));
+		//////////////
+		// инициализация для Electron 40
+		
+/*		if (typeof WebContentsView !== 'undefined') {
+			this.window = new WebContentsView(viewPrefs);
+			this.form.contentView.addChildView(this.window);
+			this.window.setBounds(bounds);
+    
+			// авто-ресайз для Electron 40
+			this.form.on('resize', () => {
+				const [w, h] = this.form.getContentSize();
+				this.window.setBounds({ x: 0, y: 30, width: w, height: h-30 });
+			});
+		}
+
+		// инициализация для Electron 22
+		else
+		//*/
+		if (typeof BrowserView !== 'undefined') {
+			this.window = new BrowserView(viewPrefs);
+			this.form.setBrowserView(this.window);
+//			this.window.setBounds(bounds);
+			const ww = this.form.getContentSize();
+			this.window.setBounds({ x: 0, y: 0, width: ww[0], height: ww[1] });//, horizontal: true, vertical: true });
+			// авто-ресайз для Electron 22
+//			this.window.setAutoResize({ width: true, height: true, horizontal: true, vertical: true });
+		}
+		////////////
 
 //		this.window.webContents.openDevTools(); // для отладки
+//		this.form.webContents.openDevTools(); // для отладки
 
 		// костыль в виде CSS-кода для  НОРМАЛЬНОГО выравнивания содержимого по высоте окна
 		// (видимо, electron-21 и ниже криво обрабатывают сие безарбузие,  рисуя скроллбары
@@ -177,22 +243,22 @@ this.window.webContents.insertCSS(`
 //img.image[style*="object-fit: cover"] { object-fit: contain !important; }
 //.navigation, aside, topbar, .openedChat { -webkit-user-select: none !important; user-select: none !important; }
 .navigation, aside, topbar { -webkit-user-select: none !important; user-select: none !important; }
-[class*="history"] { --max-content-width: 96% !important; }
-[class*="composer"] { width: 100% !important; max-width:100% !important; }
+[class*="history"] { --max-content-width: 98% !important; }
+[class*="composer"] { min-width: 96% !important; max-width: 100% !important; align-self: center !important;}
 `).catch(err => console.error('CSS Injection failed:', err)); //*/
 
 ////////////////////////////////////////////////////////////////////////////////
 
 		this.moduleManager = new ModuleManager([
 			new HotkeyModule(this, this.window)
-			, new TrayModule(this, this.window)
+			, new TrayModule(this, this.form, this.window)
 //			, new WindowSettingsModule(this, this.window, 'window', app.getPath('userData'))
 		]);
 
-		this.window.on("show", () => {
+		this.form.on("show", () => {
 		
 			setTimeout(() => {
-				this.window.focus();
+				this.form.focus();
 			}, 200);
 		});
 
@@ -201,6 +267,7 @@ this.window.webContents.insertCSS(`
 		// вариант с конвертированием в .jpg
 		this.window.webContents.session.on('will-download', (event, item, webContents) => {
 			const url = item.getURL();
+			console.log("will-download:", url);
 			const isWebP = item.getMimeType() === 'image/webp' || url.toLowerCase().endsWith('.webp');
 
 			// это видео или мы уже в процессе повторной загрузки
@@ -226,9 +293,10 @@ this.window.webContents.insertCSS(`
 			(async () => {
 				const lastPath = dloadSetting.get("downloadsPath", app.getPath("downloads"));
 				// меняем расширение, чтобы потом с этим не заморачиваться
-				const fileName = item.getFilename().replace(/\.webp$/i, '.jpg');
+//				const fileName = item.getFilename().replace(/\.webp$/i, '.jpg');
+				const fileName = item.getFilename().replace(/\.(webp|jpe?g)$/i, '.jpg');
 
-				const { filePath, canceled } = await dialog.showSaveDialog(this.window, {
+				const { filePath, canceled } = await dialog.showSaveDialog(this.form, {
 					title: 'Сохранить файл',
 					defaultPath: path.join(lastPath, fileName)
 				});
@@ -282,8 +350,9 @@ this.window.webContents.insertCSS(`
 
 		////////////////////////////////////////////////////////////////////
 		// этот вариант просто сохраняет .webp без конвертирования или видео
-/*
-		this.window.webContents.session.on('will-download', (event, item, webContents) => {
+		// (хотя, теперь МАХ отдаёт картинки в JPEG)
+
+/*		this.window.webContents.session.on('will-download', (event, item, webContents) => {
 			const url = item.getURL();
 
 			// этот URL в списке выбранных?
@@ -303,11 +372,12 @@ this.window.webContents.insertCSS(`
 
 			// диалога "Сохранить файл" еще не было
 			event.preventDefault(); 
-			const fileName = item.getFilename();
+//			const fileName = item.getFilename();
+			const fileName = item.getFilename().replace(/\.jpeg$/i, '.jpg');
 
 			(async () => {
 				const lastPath = dloadSetting.get("downloadsPath", app.getPath("downloads"));
-				const { filePath, canceled } = await dialog.showSaveDialog(this.window, {
+				const { filePath, canceled } = await dialog.showSaveDialog(this.form, {
 //					icon: path.join(app.getAppPath(), "assets/", process.platform === 'win32' ? "app.ico":"mainapp.png"),
 					title: 'Сохранить файл',
 					defaultPath: path.join(lastPath, fileName)
@@ -470,9 +540,9 @@ this.window.webContents.insertCSS(`
 		this.makeLinksOpenInBrowser();
 		this.registerListeners();
 
-		this.window.setMenu(null);
+		this.form.setMenu(null);
 
-		this.window.loadURL('https://web.max.ru/', {
+		this.window.webContents.loadURL('https://web.max.ru/', {
 			extraHeaders: "pragma: no-cache\n" // а оно надо?
 		}); //*/
 
@@ -483,7 +553,7 @@ this.window.webContents.insertCSS(`
 
 		//isHidden = process.argv.includes('--hidden');
 		isHidden = process.argv.some(arg => arg.toLowerCase() === '--hidden');
-		if (!isHidden) this.window.show();
+		if (!isHidden) this.form.show();
 
 	}
 
@@ -513,10 +583,14 @@ this.window.webContents.insertCSS(`
 
 		this.window.webContents.setWindowOpenHandler((details) => {
 		const url = details.url;
+		console.log("URL: ", url);
 		try {
 			const parsed = new URL(url);
 			// костыль при попытке скачать видосик - если не проверить, ссылка откроется в браузере
-			const pattern = /^https\:\/\/maxvd.*\.okcdn\.ru.*$/; // maxvd375.okcdn.ru
+//			const pattern = /^https\:\/\/maxvd.*\.okcdn\.ru.*$/; // maxvd375.okcdn.ru
+			const pattern = /^(?:https:\/\/maxvd.*\.okcdn\.ru\/.*|https:\/\/i\.oneme\.ru\/.*|https:\/\/max\.ru\/.*|https:\/\/web.max.ru.*)$/;
+
+
 			if (parsed.protocol === "https:" && pattern.test(url)) {
 				this.window.webContents.session.downloadURL(url);
 				return { action: "deny" };
@@ -541,8 +615,8 @@ this.window.webContents.insertCSS(`
 	private registerListeners() {
 		app.on('second-instance', () => {
 			if (!this.isPortable) {
-				this.window.show();
-				this.window.focus();
+				this.form.show();
+				this.form.focus();
 			}
 		});
 
@@ -568,38 +642,46 @@ this.window.webContents.insertCSS(`
 		});
 
 		this.window.webContents.on('enter-html-full-screen', () => {
-			this.window.setFullScreen(true);
+			this.form.setFullScreen(true);
+			const ww = this.form.getContentSize();
+			this.window.setBounds({ x: 0, y: 0, width: ww[0], height: ww[1] });
 		});
 
 		this.window.webContents.on('leave-html-full-screen', () => {
-			this.window.setFullScreen(false);
+			this.form.setFullScreen(false);
+			const ww = this.form.getContentSize();
+			this.window.setBounds({ x: 0, y: 0, width: ww[0], height: ww[1] });
 		});//*/
 
-		this.window.on('resize', () => {
+		this.form.on('resize', () => {
+			if (process.versions.electron.startsWith('22.')) {
+				const ww = this.form.getContentSize();
+				this.window.setBounds({ x: 0, y: 0, width: ww[0], height: ww[1] });
+			}
 			//this.moduleManager.onQuit();
-			if (!this.window.isMaximized() || !this.window.isFullScreen()) this.saveWinState();
+			if (!this.form.isMaximized() || !this.form.isFullScreen()) this.saveWinState();
 		});
 
-		this.window.on('move', () => {
+		this.form.on('move', () => {
 			//this.moduleManager.onQuit();
-			if (!this.window.isMaximized() || !this.window.isFullScreen()) this.saveWinState();
+			if (!this.form.isMaximized() || !this.form.isFullScreen()) this.saveWinState();
 		});
 		// */
 
 		// для contextIsolation = false (по сути, не требуется)
 		ipcMain.on('notification-click', () => {
-			if (!this.window.isVisible()) this.window.show();
-			if (this.window.isMinimized()) this.window.restore();
-			this.window.focus();		
+			if (!this.form.isVisible()) this.form.show();
+			if (this.form.isMinimized()) this.form.restore();
+			this.form.focus();		
 		});
 
 		// для contextIsolation = true
 		ipcMain.handle("notify-click", async () => {
-			if (!this.window.isVisible()) { this.window.show(); }
-			if (this.window.isMinimized()) { this.window.restore(); }
+			if (!this.form.isVisible()) { this.form.show(); }
+			if (this.form.isMinimized()) { this.form.restore(); }
 
-			this.window.show();
-			this.window.focus();
+			this.form.show();
+			this.form.focus();
 		});
 
 		////////////////////////////////////////
@@ -608,7 +690,7 @@ this.window.webContents.insertCSS(`
 //			dialog.showMessageBox({message: "canHide: ", canHide});
 			event.preventDefault(); // чтобы не выполнялись иные действия, проигнорим их
 			this.canCloseMe = true;
-			this.window.hide();
+			this.form.hide();
 			this.canCloseMe = false;
 		});
 
