@@ -139,3 +139,10 @@ If there is no active chat, navigate the chat list (second segment of the window
 - If using Portable-version then you may launch more than one instance of App (make sure you're launch App from other folders);
 - To notify about turning spell checking on/off, a message pops up inside the application window.
 
+### v1.0.4-15
+- The way the window is formed has been changed - BrowserView is now embedded into BrowserWindow
+
+### v1.0.4-16
+- Corrected my image embedding code, as the MAX developers actually decided to implement it (the image ended up being inserted twice);
+- Fixed errors related to window rotation in FullScreen;
+- Minor bugs were corrected.
