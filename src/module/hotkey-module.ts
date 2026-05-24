@@ -1,4 +1,4 @@
-import { BrowserWindow, Event, Input } from "electron";
+import { BrowserWindow, BrowserView, Event, Input } from "electron";
 import MainApp from "../mainapp";
 import Module from "./module";
 
@@ -14,7 +14,8 @@ export default class HotkeyModule extends Module {
 
 	constructor(
 		private readonly MainApp: MainApp,
-		private readonly window: BrowserWindow
+		private readonly form: BrowserWindow,
+		private readonly window: BrowserView
 	) {
 		super();
 	}
@@ -80,7 +81,7 @@ export default class HotkeyModule extends Module {
 			{
 				control: true,
 				keys: ["W"],
-				action: () => this.window.hide()
+				action: () => this.form.hide()
 			},
 			{
 				control: true,

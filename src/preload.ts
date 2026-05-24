@@ -628,7 +628,7 @@ if (process.contextIsolated) {
 		// меню по пунктику "Вставить", чтобы научить вставлять картинки
 
 		// глядим, чего под мышкой
-		window.addEventListener('mousedown', (e) => {
+/*		window.addEventListener('mousedown', (e) => {
 			const target = e.target as HTMLElement;
 			const btn = target.closest('button.actionsMenuItem');
 			const title = btn?.querySelector('.title')?.textContent;
@@ -660,7 +660,7 @@ if (process.contextIsolated) {
 					e.stopImmediatePropagation();
 				}
 			}
-		}, true);
+		}, true); //*/
 		
 		////////////////////////////////////////////////////////////////////////
 /*		BrowserWindow.close = () => {

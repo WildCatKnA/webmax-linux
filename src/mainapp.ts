@@ -100,9 +100,29 @@ export default class MainApp {
 	private isPortable: boolean;// = false;
 	private cssKey: string | null = null;
 
-
-
 ////////////////////////////////
+	public updateViewBounds() {
+//		const [width, height] = this.form.getContentSize();
+//		this.window.setBounds({ x: 0, y: 0, width, height });
+//		const { width, height } = this.form.getBounds();
+//		this.window.setBounds({ x: 0, y: 0, width, height });
+//		this.window.setAutoResize({ width: true, height: true, horizontal: true, vertical: true });
+//		console.log("w:", width, "h:", height);
+//		let wb = this.form.getBounds();
+//		let ww = this.form.getContentSize();
+		let wb;
+		setTimeout(() => {
+			wb = this.form.getContentBounds();
+		}, 50);
+		setTimeout(() => {
+//			this.form.focus();
+//			if (this.form.isFullScreen()) this.window.setBounds({ x: 0, y: 0, width: wb.width, height: wb.height })
+//			else this.window.setBounds({ x: 0, y: 0, width: ww[0], height: ww[1] });
+			this.window.setBounds({ x: 0, y: 0, width: wb.width, height: wb.height })
+		}, 50);
+//		console.log("w:", wb.width, "h:", wb.height);
+	}
+
 	public winShow(){
 		let defaults = this.form.getBounds();
 //		let yy = process.versions.electron.startsWith('22.') ? 0 : 30;
@@ -194,32 +214,15 @@ export default class MainApp {
 		});
 //		this.form.loadFile(path.join(__dirname, 'mainapp.html'));
 		//////////////
-		// инициализация для Electron 40
-		
-/*		if (typeof WebContentsView !== 'undefined') {
-			this.window = new WebContentsView(viewPrefs);
-			this.form.contentView.addChildView(this.window);
-			this.window.setBounds(bounds);
-    
-			// авто-ресайз для Electron 40
-			this.form.on('resize', () => {
-				const [w, h] = this.form.getContentSize();
-				this.window.setBounds({ x: 0, y: 30, width: w, height: h-30 });
-			});
-		}
 
-		// инициализация для Electron 22
-		else
-		//*/
-		if (typeof BrowserView !== 'undefined') {
-			this.window = new BrowserView(viewPrefs);
-			this.form.setBrowserView(this.window);
-//			this.window.setBounds(bounds);
-			const ww = this.form.getContentSize();
-			this.window.setBounds({ x: 0, y: 0, width: ww[0], height: ww[1] });//, horizontal: true, vertical: true });
-			// авто-ресайз для Electron 22
-//			this.window.setAutoResize({ width: true, height: true, horizontal: true, vertical: true });
-		}
+		this.window = new BrowserView(viewPrefs);
+		this.form.setBrowserView(this.window);
+//		this.window.setBounds(bounds);
+//		const ww = this.form.getContentSize();
+//		this.window.setBounds({ x: 0, y: 0, width: ww[0], height: ww[1] });//, horizontal: true, vertical: true });
+		// авто-ресайз для Electron 22
+		this.window.setAutoResize({ width: true, height: true, horizontal: true, vertical: true });
+
 		////////////
 
 //		this.window.webContents.openDevTools(); // для отладки
@@ -250,7 +253,7 @@ this.window.webContents.insertCSS(`
 ////////////////////////////////////////////////////////////////////////////////
 
 		this.moduleManager = new ModuleManager([
-			new HotkeyModule(this, this.window)
+			new HotkeyModule(this, this.form, this.window)
 			, new TrayModule(this, this.form, this.window)
 //			, new WindowSettingsModule(this, this.window, 'window', app.getPath('userData'))
 		]);
@@ -641,31 +644,66 @@ this.window.webContents.insertCSS(`
 			}
 		});
 
-		this.window.webContents.on('enter-html-full-screen', () => {
+/*		this.window.webContents.on('enter-full-screen', () => {
+//			console.log("Fullscreen");
 			this.form.setFullScreen(true);
-			const ww = this.form.getContentSize();
-			this.window.setBounds({ x: 0, y: 0, width: ww[0], height: ww[1] });
+//			const { width, height } = this.form.getBounds();
+//			this.window.setBounds({ x: 0, y: 0, width, height });
+//			const ww = this.form.getContentSize();
+//			this.window.setBounds({ x: 0, y: 0, width: ww[0], height: ww[1] });
+//			this.window.setAutoResize({ width: true, height: true, horizontal: true, vertical: true });
+			this.updateViewBounds();
 		});
 
-		this.window.webContents.on('leave-html-full-screen', () => {
-			this.form.setFullScreen(false);
-			const ww = this.form.getContentSize();
-			this.window.setBounds({ x: 0, y: 0, width: ww[0], height: ww[1] });
+		this.window.webContents.on('leave-full-screen', () => {
+//			this.form.setFullScreen(false);
+//			const { width, height } = this.form.getBounds();
+//			this.window.setBounds({ x: 0, y: 0, width, height });
+//			const ww = this.form.getContentSize();
+//			this.window.setBounds({ x: 0, y: 0, width: ww[0], height: ww[1] });
+//			this.window.setAutoResize({ width: true, height: true, horizontal: true, vertical: true });
+			this.updateViewBounds();
 		});//*/
 
 		this.form.on('resize', () => {
-			if (process.versions.electron.startsWith('22.')) {
-				const ww = this.form.getContentSize();
-				this.window.setBounds({ x: 0, y: 0, width: ww[0], height: ww[1] });
-			}
+//			if (process.versions.electron.startsWith('22.')) {
+//				const ww = this.form.getContentSize();
+//				this.window.setBounds({ x: 0, y: 0, width: ww[0], height: ww[1] });
+//				this.window.setAutoResize({ width: true, height: true, horizontal: true, vertical: true });
+//			}
 			//this.moduleManager.onQuit();
+//			const { width, height } = this.form.getBounds();
+//			this.window.setBounds({ x: 0, y: 0, width, height });
+			this.updateViewBounds();
 			if (!this.form.isMaximized() || !this.form.isFullScreen()) this.saveWinState();
 		});
 
 		this.form.on('move', () => {
-			//this.moduleManager.onQuit();
+//			updateViewBounds;
 			if (!this.form.isMaximized() || !this.form.isFullScreen()) this.saveWinState();
 		});
+
+		this.form.on('enter-full-screen', () => {
+			this.updateViewBounds();
+			if (!this.form.isMaximized() || !this.form.isFullScreen()) this.saveWinState();
+		});
+
+		this.form.on('leave-full-screen', () => {
+			this.updateViewBounds();
+			if (!this.form.isMaximized() || !this.form.isFullScreen()) this.saveWinState();
+		});
+
+		this.form.on('maximize', () => {
+			this.updateViewBounds();
+			if (!this.form.isMaximized() || !this.form.isFullScreen()) this.saveWinState();
+		});
+
+		this.form.on('unmaximize', () => {
+			this.updateViewBounds();
+			if (!this.form.isMaximized() || !this.form.isFullScreen()) this.saveWinState();
+		});
+
+
 		// */
 
 		// для contextIsolation = false (по сути, не требуется)
@@ -707,6 +745,7 @@ ipcMain.on('allow-my-close', () => {
 				const win = BrowserWindow.fromWebContents(event.sender);
 				if (win) {
 					win.setFullScreen(isActive);
+					this.window.setAutoResize({ width: true, height: true, horizontal: true, vertical: true });
 				}
 			}
 		}); // */
@@ -725,7 +764,7 @@ ipcMain.on('allow-my-close', () => {
 		///////////////////////////////////////////
 		// допиливаем вставку через меню web.max.ru
 		// (через меню не вставлялись картинки)
-		ipcMain.on('force-ctrl-v', (event) => {
+/*		ipcMain.on('force-ctrl-v', (event) => {
 			const wc = event.sender;
 			const modifier = process.platform === 'darwin' ? 'meta' : 'control';
 
