@@ -146,3 +146,8 @@ If there is no active chat, navigate the chat list (second segment of the window
 - Corrected my image embedding code, as the MAX developers actually decided to implement it (the image ended up being inserted twice);
 - Fixed errors related to window rotation in FullScreen;
 - Minor bugs were corrected.
+### v1.0.4-17
+
+### v1.0.4-18
+- It seems the notifications have been "fixed," though the first notification after launching the app might not appear;
+- minor, insignificant tweaks.
