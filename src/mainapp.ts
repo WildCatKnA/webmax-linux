@@ -591,7 +591,7 @@ this.window.webContents.insertCSS(`
 			const parsed = new URL(url);
 			// костыль при попытке скачать видосик - если не проверить, ссылка откроется в браузере
 //			const pattern = /^https\:\/\/maxvd.*\.okcdn\.ru.*$/; // maxvd375.okcdn.ru
-			const pattern = /^(?:https:\/\/maxvd.*\.okcdn\.ru\/.*|https:\/\/i\.oneme\.ru\/.*|https:\/\/max\.ru\/.*|https:\/\/web.max.ru.*)$/;
+			const pattern = /^(?:https:\/\/maxvd.*\.okcdn\.ru\/.*|https:\/\/i\.oneme\.ru\/.*|https:\/\/fd\.oneme\.ru\/.*|https:\/\/max\.ru\/.*|https:\/\/web.max.ru.*)$/;
 
 
 			if (parsed.protocol === "https:" && pattern.test(url)) {
@@ -707,20 +707,33 @@ this.window.webContents.insertCSS(`
 		// */
 
 		// для contextIsolation = false (по сути, не требуется)
-		ipcMain.on('notification-click', () => {
+/*		ipcMain.on('notification-click', () => {
 			if (!this.form.isVisible()) this.form.show();
 			if (this.form.isMinimized()) this.form.restore();
 			this.form.focus();		
-		});
+		});//*/
 
 		// для contextIsolation = true
-		ipcMain.handle("notify-click", async () => {
+/*		ipcMain.handle("notify-click", async () => {
 			if (!this.form.isVisible()) { this.form.show(); }
 			if (this.form.isMinimized()) { this.form.restore(); }
 
 			this.form.show();
 			this.form.focus();
-		});
+		});//*/
+
+		ipcMain.on("notify-click", () => {
+//		this.window.on("notify-click", () => {
+//			console.log("notify");
+//			setTimeout(() => {
+				if (!this.form.isVisible()) { this.form.show(); }
+				if (this.form.isMinimized()) { this.form.restore(); }
+
+				this.form.show();
+				this.form.focus();
+//			}, 200);
+		});//*/
+
 
 		////////////////////////////////////////
 		// сворачиваемся по Esc, если чат закрыт

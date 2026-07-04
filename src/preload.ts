@@ -335,6 +335,44 @@ function applyMaxFontSmooth(percent: number) { // Явно указываем : 
 
 webFrame.executeJavaScript(scriptToInject); // видео на паузу
 
+//////////////////////////////////////////////////////////////////
+// чиним уведомлялку - сломал, когда перешел на дуэт BrowserWindow
+// + WebContentView (для electron40) или BrowserView (electron22)
+
+// безопасный канал для отправки сигнала в главный процесс
+contextBridge.exposeInMainWorld('__electronNotificationBridge', {
+	sendClick: () => ipcRenderer.send('notify-click')
+});
+
+// патч прямо в веб-страницу
+webFrame.executeJavaScript(`
+	(function() {
+		// поддерживает ли страница уведомления
+		if (!window.Notification) return;
+
+		const OriginalNotification = window.Notification;
+
+		// переопределяем класс Notification
+		class PatchedNotification extends OriginalNotification {
+			constructor(title, options) {
+				super(title, options);
+
+				// перехватываем клик по уведомлению
+				this.addEventListener('click', () => {
+					// метод, который пробросили через contextBridge выше
+					if (window.__electronNotificationBridge) {
+						window.__electronNotificationBridge.sendClick();
+					}
+				});
+			}
+		}
+
+		// меняем стандартный класс на модифицированный
+		window.Notification = PatchedNotification;
+	})();
+`);
+
+
 //////////////////////////////////////////////
 // спиздил у официальной махи, чуть подковырял
 if (process.contextIsolated) {
