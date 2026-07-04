@@ -150,4 +150,4 @@ If there is no active chat, navigate the chat list (second segment of the window
 
 ### v1.0.4-18
 - It seems the notifications have been "fixed," though the first notification after launching the app might not appear;
-- minor, insignificant tweaks.
+- Minor corrections.
