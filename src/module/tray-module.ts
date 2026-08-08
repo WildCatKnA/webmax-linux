@@ -1,4 +1,4 @@
-import { app, screen, BrowserWindow, Menu, MenuItem, Tray, Notification, /*ipcMain*/ } from "electron";
+import { app, screen, BrowserWindow, Menu, session, MenuItem, Tray, Notification, /*ipcMain*/ } from "electron";
 import { getUnreadMessages, getMyOSVersion, showWebToast } from "../util";
 
 const { dialog, nativeImage } = require('electron');
@@ -15,6 +15,8 @@ const OVERLAY     = path.join(app.getAppPath(), "assets/", "overlay.png");
 const ICON_ABOUT  = path.join(app.getAppPath(), "assets/", /*process.platform === 'win32'? "applogo.ico" :*/ "applogo.png");
 const MENU_HIDE   = path.join(app.getAppPath(), "assets/", "hide.png");
 const MENU_ABOUT  = path.join(app.getAppPath(), "assets/", "about.png");
+
+const MENU_CLEAN  = path.join(app.getAppPath(), "assets/", "clean.png");
 
 const MENU_ZOOM   = path.join(app.getAppPath(), "assets/", "zoom.png");
 const MENU_ZOOM_P = path.join(app.getAppPath(), "assets/", "zoom-plus.png");
@@ -103,7 +105,7 @@ export default class TrayModule extends Module {
 			},
 
 
-			{ type: 'separator' },
+/*			{ type: 'separator' },
 
 			{
 				label: "Шрифт",
@@ -135,7 +137,7 @@ export default class TrayModule extends Module {
 						}
 					}
 				]
-			},
+			}, //*/
 
 
 			{ type: 'separator' },
@@ -155,6 +157,34 @@ export default class TrayModule extends Module {
 
 					let speelText = `Проверка орфографии ${this.MainApp.spellChecking ? 'включена' : 'выключена'}.`;
 					showWebToast(speelText, this.window);
+				}
+			},
+
+			{ type: 'separator' },
+
+			{
+				label: 'Очистить кэш',
+				icon: MENU_CLEAN,
+				//accelerator: 'CmdOrCtrl+Shift+R',
+				click: async () => {
+					try {
+						// чистим HTTP-кэш
+						await session.defaultSession.clearCache();
+
+						// чистим LocalStorage и куки, если нужно
+						// await session.defaultSession.clearStorageData();
+
+						//console.log('Кэш успешно очищен!');
+						let speelText = `Кэш успешно очищен.`;
+						showWebToast(speelText, this.window);
+
+						// перезагружаемся
+						//this.window.webContents.reloadIgnoringCache();
+					} catch (error) {
+						//console.error('Не удалось очистить кэш:', error);
+						let speelText = `Ошибка: ${error}`;
+						showWebToast(speelText, this.window);
+					}
 				}
 			},
 
