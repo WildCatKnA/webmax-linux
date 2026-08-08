@@ -5,7 +5,7 @@
 	"description": "WebMax for Linux (unofficial)",
 	"main": "dist/index.js",
 	"scripts": {
-		"dist": "tsc && cp src/mainapp.html dist/ && cp src/picker.html dist/ && cp src/picker.js dist/ && cp src/viewer.html dist/",
+		"dist": "tsc && cp src/mainapp.html dist/ && cp src/picker.html dist/ && cp src/picker.js dist/ ",
 		"watch": "tsc -w",
 		"lint": "eslint -c .eslintrc --ext .ts ./src",
 		"start": "npm run dist && electron .",
@@ -21,9 +21,9 @@
 		"electron-store": "^8.1.0"
 	},
 	"devDependencies": {
-		"electron": "^40.6.1",
-		"electron-builder": "^26.8.1",
-		"typescript": "^5.9"
+		"electron": "^22.3.27",
+		"electron-builder": "^24.13.3",
+		"typescript": "^5.0"
 	},
 	"build": {
 		"electronLanguages": ["ru", "en", "en-GB", "en-US"],
@@ -57,18 +57,13 @@
 			},
 			"category": "public.app-category.social-networking",
 			"target": [
-				{
-					"target": "zip",
-					"arch": [
-						"x64",
-						"arm64"
-					]
-				}
+				"dmg",
+				"zip"
 			]
 		},
 		"linux": {
 			"executableName": "webmax",
-			"appId": "webmax.desktop",
+			"appId": "WebMax Desktop",
 			"icon": "./icon.png",
 			"category": "Network",
 			"target": [

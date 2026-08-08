@@ -1,4 +1,4 @@
-import { BrowserWindow, WebContentsView, Event, Input } from "electron";
+import { BrowserWindow, BrowserView, Event, Input } from "electron";
 import MainApp from "../mainapp";
 import Module from "./module";
 
@@ -15,7 +15,7 @@ export default class HotkeyModule extends Module {
 	constructor(
 		private readonly MainApp: MainApp,
 		private readonly form: BrowserWindow,
-		private readonly window: WebContentsView
+		private readonly window: BrowserView
 	) {
 		super();
 	}

@@ -349,9 +349,7 @@ export default class TrayModule extends Module {
 
 		this.window.webContents.on('page-title-updated', async (event, title) => {
 			this.form.setTitle(title);
-//			const safeTitle = title.replace(/'/g, "\\'");
-//			this.newTitle(safeTitle);
-			this.newTitle(this.form.getTitle());
+			if (process.versions.electron.startsWith('40.')) this.newTitle(this.form.getTitle());
 			if (title !== "MAX") {
 				unread = getUnreadMessages(title);
 			} else unread = 0;

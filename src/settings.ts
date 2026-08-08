@@ -25,10 +25,26 @@ export default class Settings {
 	}
 
 	public get(key: string, defaults: any = null): any {
-		return this.store.get(this.section + key, defaults);
+//		return this.store.get(this.section + key, defaults);
+		try {
+			return this.store.get(this.section + key, defaults);
+		} catch (err) {
+			// например, EPERM/EBUSY при чтении config.json на сетевых
+			// (перенаправленных через GPO) папках профиля - не фатально
+			console.error(`Settings.get(${this.section}${key}) failed:`, err);
+			return defaults;
+		}
 	}
 
 	public set(key: string, value: any): void {
-		this.store.set(this.section + key, value);
+//		this.store.set(this.section + key, value);
+		try {
+			this.store.set(this.section + key, value);
+		} catch (err) {
+			// например, EPERM при rename config.json.tmp -> config.json на
+			// сетевых (перенаправленных через GPO) папках профиля - теряем
+			// только это конкретное сохранение состояния, не крашим приложение
+			console.error(`Settings.set(${this.section}${key}) failed:`, err);
+		}
 	}
 }

@@ -90,11 +90,9 @@ export function showWebToast(message: string, win: BrowserWindow): void {
 
 	const jsCode = `
 (() => {
-  var existingDiv = document.getElementById("toast");
-  if (existingDiv) existingDiv.remove();
-  var toast = document.createElement("div");
+  const toast = document.createElement("div");
   toast.innerText = ${JSON.stringify(message)};
-  toast.id = "toast";
+			
   toast.style.cssText = \`
     position: fixed; 
     top: 2px; 
@@ -129,19 +127,4 @@ export function showWebToast(message: string, win: BrowserWindow): void {
 	if (win && win.webContents) {
 		win.webContents.executeJavaScript(jsCode);
 	}
-}
-
-export function getContrastColor(hexColor) {
-	const hex = hexColor.replace('#', '');
-
-	// каналы R, G, B
-	const r = parseInt(hex.substring(0, 2), 16);
-	const g = parseInt(hex.substring(2, 4), 16);
-	const b = parseInt(hex.substring(4, 6), 16);
-  
-	// формула яркости YIQ (от 0 до 255)
-	const yiq = (r * 299 + g * 587 + b * 114) / 1000;
-
-	// фон светлый - отдаём черный; если темный - белый
-	return yiq >= 128 ? '#000000' : '#ffffff';
 }
