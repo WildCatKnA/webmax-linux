@@ -1,11 +1,9 @@
-import { app, /*systemPreferences,*/ session, desktopCapturer,
-	BrowserWindow, BrowserView, WebContentsView, nativeImage,
-	net, Notification, clipboard, nativeTheme, ipcMain, shell } from "electron";
+import { app, session, desktopCapturer, BrowserWindow, BrowserView, WebContentsView, nativeImage, net, Notification, clipboard, nativeTheme, ipcMain, shell } from "electron";
 import HotkeyModule from "./module/hotkey-module";
 import ModuleManager from "./module/module-manager";
 import TrayModule from "./module/tray-module";
 //import WindowSettingsModule from "./module/window-settings-module";
-import { getUnusedPath, showWebToast, getContrastColor } from "./util";
+import { getUnusedPath, showWebToast } from "./util";
 //import { convertWebpToJpegInRenderer } from "./util";
 import Settings from "./settings";
 import { existsSync, createWriteStream, unlink } from "fs";
@@ -59,7 +57,6 @@ let pickerWin: BrowserWindow | null = null;
 let isHidden = false;
 let saveTimeout;
 let bckGround;//: string;
-let freGround;
 
 //let pendingSavePath: string | null = null;
 const pendingDownloads = new Map<string, string>();
@@ -95,6 +92,7 @@ export default class MainApp {
 	private readonly form: BrowserWindow;
 	private readonly window: any;
 	private readonly moduleManager: ModuleManager;
+	public fsState = false;
 	public quitting = false;
 	public canCloseMe = false;
 	public openFldr = true;
@@ -108,7 +106,6 @@ export default class MainApp {
 ////////////////////////////////
 	public winShow(){
 		let defaults = this.form.getBounds();
-//		let yy = process.versions.electron.startsWith('22.') ? 0 : 30;
 		const wb = windowSetting.get("bounds", defaults);
 
 		// костыль для линупсов, будь они прокляты...
@@ -119,19 +116,11 @@ export default class MainApp {
 				x: wb.x, y: wb.y - 30, width: wb.width, height: wb.height 
 			}); //*/
 		} else this.form.setBounds(wb);
-/*		if (process.versions.electron.startsWith('22.')) {
-			const ww = this.form.getContentSize();
-			this.window.setBounds({ x: 0, y: 0, width: ww[0], height: ww[1] });//, horizontal: true, vertical: true });
-//			this.window.setAutoResize({ width: true, height: true, horizontal: true, vertical: true });
-		} else {
-			this.window.setBounds({x: 0, y: yy, width: wb.width, height: wb.height - yy});
-		}//*/
-		const ww = this.form.getContentSize();
-//		this.window.setBounds({ x: 0, y: 30, width: ww[0], height: ww[1]-30 });//, horizontal: true, vertical: true });
-		this.window.setBounds({ x: 1, y: 30, width: ww[0]-2, height: ww[1]-31 });//, horizontal: true, vertical: true });
+		this.window.setBounds({x: 0, y: 30, width: wb.width, height: wb.height-30});
 
 		if (windowSetting.get("maximized", false)) {
 			this.form.maximize();
+			this.fsState = this.form.isMaximized();
 		}
 		this.openFldr = windowSetting.get("show-folder", true);
 		this.fullscrView = windowSetting.get("fullscreenViewer", true); // linux or windows only
@@ -152,30 +141,18 @@ export default class MainApp {
 	constructor(portable: boolean) {
 //	constructor() {
 		const bounds = { x: 0, y: 0, width: 1200, height: 800 };
-//		const rawAccent = systemPreferences.getAccentColor();
-//		console.log("RAW:", rawAccent);
-		
 		const viewPrefs = {
 			webPreferences: {
 				preload: path.join(__dirname, 'preload.js'),
 				spellcheck: true, //this.spellChecking,//false,
 //				autoplayPolicy: 'user-gesture-required',
-//				nodeIntegration: false,
+				nodeIntegration: false,
 				contextIsolation: true, // if false - native Notification override in preload
 				sandbox: false
 			}
 		}
 		this.isPortable = portable;//true;
 		bckGround = nativeTheme.shouldUseDarkColors ? "#25262d" : "#ffffff";
-		freGround = nativeTheme.shouldUseDarkColors ? "#f0f0f0" : "#000000";
-
-/*		let accentText = freGround;
-		let accentColor = bckGround;
-		if (rawAccent) {
-			accentColor = `#${rawAccent.slice(0, 6)}`;
-			accentText = getContrastColor(accentColor);
-		}//*/
-
 //		this.window = new BrowserWindow({
 		this.form = new BrowserWindow({
 			title: "MAX",
@@ -184,22 +161,22 @@ export default class MainApp {
 			height: 800,
 			minWidth: 320,//800,
 			minHeight: 240,//600,
-			backgroundColor: bckGround,//accentColor,//bckGround,
+			backgroundColor: bckGround,
 			show: false,
 			autoHideMenuBar: true,
 			frame: false,
 			titleBarStyle: 'hidden',
+//			transparent: true,
 			// критично для Linux:
-			titleBarOverlay: {
-				height: 29,
-				color: bckGround,//accentColor, //bckGround, // цвет фона под кнопками
-				symbolColor: freGround,//accentText, //freGround, // цвет самих иконок
+/*			titleBarOverlay: {
+				height: 30,
+				color: bckGround, // цвет фона под кнопками
+				symbolColor: '#ffffff' // цвет самих иконок
 			}, //*/
 			webPreferences: {
-//				nodeIntegration: true,
-				contextIsolation: false//true
+				nodeIntegration: true,
+				contextIsolation: false
 //				, preload: path.join(__dirname, 'preload.js'),
-				, sandbox: false
 			}
 /*			webPreferences: {
 				preload: path.join(__dirname, 'preload.js'),
@@ -210,43 +187,23 @@ export default class MainApp {
 			}//*/
 		});
 		this.form.loadFile(path.join(__dirname, 'mainapp.html'));
+
 		//////////////
 		// инициализация для Electron 40
-		
-//		if (typeof WebContentsView !== 'undefined') {
+		if (typeof WebContentsView !== 'undefined') {
 			this.window = new WebContentsView(viewPrefs);
 			this.form.contentView.addChildView(this.window);
-//			this.window.setBounds(bounds);
-			const ww = this.form.getContentSize();
-//			this.window.setBounds({ x: 0, y: 30, width: ww[0], height: ww[1]-30 });
-			this.window.setBounds({ x: 1, y: 30, width: ww[0]-2, height: ww[1]-31 });
-
-			// авто-ресайз для Electron 40
-			this.form.on('resize', () => {
-/*				const [w, h] = this.form.getContentSize();
-//				console.log("w:", w, " h:", h);
-				this.window.setBounds({ x: 0, y: 30, width: w, height: h-30 });
-//*/
-				const wb = this.form.getBounds();
-//				this.window.setBounds({x: 0, y: 30, width: wb.width, height: wb.height-30});
-				this.window.setBounds({x: 1, y: 30, width: wb.width-2, height: wb.height-31});
-
-				if (!this.form.isMaximized() || !this.form.isFullScreen()) this.saveWinState();
-			});//*/
-//		}
+			this.window.setBounds(bounds);
+		} 
 
 		// инициализация для Electron 22
-/*		else
-
-		if (typeof BrowserView !== 'undefined') {
+		else if (typeof BrowserView !== 'undefined') {
 			this.window = new BrowserView(viewPrefs);
 			this.form.setBrowserView(this.window);
-//			this.window.setBounds(bounds);
-			const ww = this.form.getContentSize();
-			this.window.setBounds({ x: 0, y: 0, width: ww[0], height: ww[1] });//, horizontal: true, vertical: true });
+			this.window.setBounds(bounds);
 			// авто-ресайз для Electron 22
-//			this.window.setAutoResize({ width: true, height: true, horizontal: true, vertical: true });
-		}//*/
+			this.window.setAutoResize({ width: true, height: true });
+		}
 		////////////
 
 //!		this.window.webContents.openDevTools(); // для отладки
@@ -258,6 +215,31 @@ export default class MainApp {
 //		if (process.versions.electron.startsWith('21.')) {
 //			this.window.webContents.insertCSS('.aside, .openedChat { height: 100vh; display: flex; flex-direction: column; }  ');
 //		}
+
+		const updateStatus = () => {
+			this.form.webContents.send('win-status', this.form.isMaximized() || this.form.isFullScreen());
+		};
+
+		const updateFocusState = () => {
+			setTimeout(() => {
+				if (this.form.isDestroyed()) return;
+				// считаем приложение активным, если сфокусировано хоть что-то
+				const isAppActive = this.form.isFocused() || this.window.webContents.isFocused();
+				this.form.webContents.send('app-focus-change', isAppActive);
+			}, 50); // задержка, чтобы наверняка
+		};
+
+		this.form?.webContents.send('win-status', this.fsState);
+		this.form.on('maximize', updateStatus);
+		this.form.on('unmaximize', updateStatus);
+		this.form.on('enter-full-screen', updateStatus);
+		this.form.on('leave-full-screen', updateStatus);
+
+		this.form.on('focus', updateFocusState);
+		this.form.on('blur', updateFocusState);
+
+		this.window.webContents.on('focus', updateFocusState);
+		this.window.webContents.on('blur', updateFocusState);
 
 ////////////////////////////////////////////////////////////////////////////////
 // тут пытаемся "подправить" фон в просмотрщике и прочую лабуду
@@ -277,7 +259,7 @@ this.window.webContents.insertCSS(`
 ////////////////////////////////////////////////////////////////////////////////
 
 		this.moduleManager = new ModuleManager([
-			new HotkeyModule(this, this.form, this.window)
+			new HotkeyModule(this, this.window)
 			, new TrayModule(this, this.form, this.window)
 //			, new WindowSettingsModule(this, this.window, 'window', app.getPath('userData'))
 		]);
@@ -286,6 +268,7 @@ this.window.webContents.insertCSS(`
 		
 			setTimeout(() => {
 				this.form.focus();
+				app.focus({ steal: true });
 			}, 200);
 		});
 
@@ -294,7 +277,6 @@ this.window.webContents.insertCSS(`
 		// вариант с конвертированием в .jpg
 		this.window.webContents.session.on('will-download', (event, item, webContents) => {
 			const url = item.getURL();
-//			console.log("will-download:", url);
 			const isWebP = item.getMimeType() === 'image/webp' || url.toLowerCase().endsWith('.webp');
 
 			// это видео или мы уже в процессе повторной загрузки
@@ -377,9 +359,8 @@ this.window.webContents.insertCSS(`
 
 		////////////////////////////////////////////////////////////////////
 		// этот вариант просто сохраняет .webp без конвертирования или видео
-		// (хотя, теперь МАХ отдаёт картинки в JPEG)
-
-/*		this.window.webContents.session.on('will-download', (event, item, webContents) => {
+/*
+		this.window.webContents.session.on('will-download', (event, item, webContents) => {
 			const url = item.getURL();
 
 			// этот URL в списке выбранных?
@@ -399,12 +380,11 @@ this.window.webContents.insertCSS(`
 
 			// диалога "Сохранить файл" еще не было
 			event.preventDefault(); 
-//			const fileName = item.getFilename();
-			const fileName = item.getFilename().replace(/\.jpeg$/i, '.jpg');
+			const fileName = item.getFilename();
 
 			(async () => {
 				const lastPath = dloadSetting.get("downloadsPath", app.getPath("downloads"));
-				const { filePath, canceled } = await dialog.showSaveDialog(this.form, {
+				const { filePath, canceled } = await dialog.showSaveDialog(this.window, {
 //					icon: path.join(app.getAppPath(), "assets/", process.platform === 'win32' ? "app.ico":"mainapp.png"),
 					title: 'Сохранить файл',
 					defaultPath: path.join(lastPath, fileName)
@@ -610,13 +590,11 @@ this.window.webContents.insertCSS(`
 
 		this.window.webContents.setWindowOpenHandler((details) => {
 		const url = details.url;
-//		console.log("URL: ", url);
 		try {
 			const parsed = new URL(url);
 			// костыль при попытке скачать видосик - если не проверить, ссылка откроется в браузере
 //			const pattern = /^https\:\/\/maxvd.*\.okcdn\.ru.*$/; // maxvd375.okcdn.ru
-			const pattern = /^(?:https:\/\/maxvd.*\.okcdn\.ru\/.*|https:\/\/i\.oneme\.ru\/.*|https:\/\/fd\.oneme\.ru\/.*|https:\/\/max\.ru\/.*|https:\/\/web.max.ru.*)$/;
-
+			const pattern = /^(?:https:\/\/maxvd.*\.okcdn\.ru\/.*|https:\/\/i\.oneme\.ru\/.*|https:\/\/max\.ru\/.*|https:\/\/web.max.ru.*)$/;
 
 			if (parsed.protocol === "https:" && pattern.test(url)) {
 				this.window.webContents.session.downloadURL(url);
@@ -670,33 +648,21 @@ this.window.webContents.insertCSS(`
 
 		this.window.webContents.on('enter-html-full-screen', () => {
 			this.form.setFullScreen(true);
-//			const ww = this.form.getContentSize();
-//			this.window.setBounds({ x: 0, y: 0, width: ww[0], height: ww[1] });
-			const wb = this.form.getBounds();
-//			this.window.setBounds({x: 0, y: 30, width: wb.width, height: wb.height-30});
-			this.window.setBounds({x: 1, y: 30, width: wb.width-2, height: wb.height-31});
-
+			const [w, h] = this.form.getContentSize();
+			this.window.setBounds({ x: 0, y: 30, width: w, height: h-30 });
 		});
 
 		this.window.webContents.on('leave-html-full-screen', () => {
 			this.form.setFullScreen(false);
-//			const ww = this.form.getContentSize();
-//			this.window.setBounds({ x: 0, y: 30, width: ww[0], height: ww[1]-30 });
-			const wb = this.form.getBounds();
-//			this.window.setBounds({x: 0, y: 30, width: wb.width, height: wb.height-30});
-			this.window.setBounds({x: 1, y: 30, width: wb.width-2, height: wb.height-31});
-		});
-
-/*		this.form.on('resize', () => {
-//			if (process.versions.electron.startsWith('22.')) {
-//				const ww = this.form.getContentSize();
-//				this.window.setBounds({ x: 0, y: 30, width: ww[0], height: ww[1]-30 });
-//			}
-			//this.moduleManager.onQuit();
-			const wb = this.form.getBounds();
-			this.window.setBounds({x: 0, y: 30, width: wb.width, height: wb.height-30});
-			if (!this.form.isMaximized() || !this.form.isFullScreen()) this.saveWinState();
+			const [w, h] = this.form.getContentSize();
+			this.window.setBounds({ x: 0, y: 30, width: w, height: h-30 });
 		});//*/
+
+		this.form.on('resize', () => {
+			const [w, h] = this.form.getContentSize();
+			this.window.setBounds({ x: 0, y: 30, width: w, height: h-30 });
+			if (!this.form.isMaximized() || !this.form.isFullScreen()) this.saveWinState();
+		});
 
 		this.form.on('move', () => {
 			//this.moduleManager.onQuit();
@@ -705,54 +671,20 @@ this.window.webContents.insertCSS(`
 		// */
 
 		// для contextIsolation = false (по сути, не требуется)
-/*		ipcMain.on('notification-click', () => {
-			setTimeout(() => {
-				if (!this.form.isVisible()) this.form.show();
-				if (this.form.isMinimized()) this.form.restore();
-				this.form.show();
-				this.form.focus();		
-			}, 200);
-		});//*/
+		ipcMain.on('notification-click', () => {
+			if (!this.form.isVisible()) this.form.show();
+			if (this.form.isMinimized()) this.form.restore();
+			this.form.focus();		
+		});
 
 		// для contextIsolation = true
-/*		ipcMain.handle("notify-click", async () => {
-			setTimeout(() => {
-				if (!this.form.isVisible()) { this.form.show(); }
-				if (this.form.isMinimized()) { this.form.restore(); }
-				this.form.show();
-				this.form.focus();
-			}, 200);
-		});//*/
+		ipcMain.handle("notify-click", async () => {
+			if (!this.form.isVisible()) { this.form.show(); }
+			if (this.form.isMinimized()) { this.form.restore(); }
 
-/*		this.window.webContents.session.on('notify-click', async () => {
-			setTimeout(() => {
-				if (!this.form.isVisible()) this.form.show();
-				if (this.form.isMinimized()) this.form.restore();
-				this.form.show();
-				this.form.focus();		
-			}, 200);
-		});//*/
-
-/*		this.window.webContents.session.on('notification-click', () => {
-			setTimeout(() => {
-				if (!this.form.isVisible()) this.form.show();
-				if (this.form.isMinimized()) this.form.restore();
-				this.form.show();
-				this.form.focus();		
-			}, 200);
-		});//*/
-
-		ipcMain.on("notify-click", () => {
-//		this.window.on("notify-click", () => {
-//			console.log("notify");
-//			setTimeout(() => {
-				if (!this.form.isVisible()) { this.form.show(); }
-				if (this.form.isMinimized()) { this.form.restore(); }
-
-				this.form.show();
-				this.form.focus();
-//			}, 200);
-		});//*/
+			this.form.show();
+			this.form.focus();
+		});
 
 		////////////////////////////////////////
 		// сворачиваемся по Esc, если чат закрыт
@@ -795,7 +727,7 @@ ipcMain.on('allow-my-close', () => {
 		///////////////////////////////////////////
 		// допиливаем вставку через меню web.max.ru
 		// (через меню не вставлялись картинки)
-/*		ipcMain.on('force-ctrl-v', (event) => {
+		ipcMain.on('force-ctrl-v', (event) => {
 			const wc = event.sender;
 			const modifier = process.platform === 'darwin' ? 'meta' : 'control';
 
@@ -895,7 +827,20 @@ ipcMain.on('allow-my-close', () => {
 		});
 		///////////////////////////////////////////////
 		
+		ipcMain.on('win-min', () => this.form.minimize());
+		ipcMain.on('win-close', () => this.form.hide());
+		ipcMain.on('win-max-res', () => {
+//			const isCurrentlyFS = this.form.isFullScreen();
+//			this.form.setFullScreen(!isCurrentlyFS);
+//			fsState = this.form.isFullScreen();
+			if (this.form.isMaximized()) this.form.restore()
+			else this.form.maximize();
+		});
 
+/*		this.form.on('closed', () => {
+			this.form.hide();
+		});//*/
+	
 		///////////////////////////////////////////////
 
 	}

@@ -128,8 +128,9 @@ export default class MainApp {
 		}//*/
 		const ww = this.form.getContentSize();
 //		this.window.setBounds({ x: 0, y: 30, width: ww[0], height: ww[1]-30 });//, horizontal: true, vertical: true });
-		this.window.setBounds({ x: 1, y: 30, width: ww[0]-2, height: ww[1]-31 });//, horizontal: true, vertical: true });
-
+///		this.window.setBounds({ x: 1, y: 30, width: ww[0]-2, height: ww[1]-31 });//, horizontal: true, vertical: true });
+		this.window.setBounds({x: 0, y: 0, width: wb.width, height: wb.height});
+				
 		if (windowSetting.get("maximized", false)) {
 			this.form.maximize();
 		}
@@ -196,8 +197,8 @@ export default class MainApp {
 				symbolColor: freGround,//accentText, //freGround, // цвет самих иконок
 			}, //*/
 			webPreferences: {
-//				nodeIntegration: true,
-				contextIsolation: false//true
+//				nodeIntegration: false,
+				contextIsolation: true
 //				, preload: path.join(__dirname, 'preload.js'),
 				, sandbox: false
 			}
@@ -219,7 +220,8 @@ export default class MainApp {
 //			this.window.setBounds(bounds);
 			const ww = this.form.getContentSize();
 //			this.window.setBounds({ x: 0, y: 30, width: ww[0], height: ww[1]-30 });
-			this.window.setBounds({ x: 1, y: 30, width: ww[0]-2, height: ww[1]-31 });
+///			this.window.setBounds({ x: 1, y: 30, width: ww[0]-2, height: ww[1]-31 });
+			this.window.setBounds({ x: 0, y: 0, width: ww[0], height: ww[1] });
 
 			// авто-ресайз для Electron 40
 			this.form.on('resize', () => {
@@ -229,7 +231,8 @@ export default class MainApp {
 //*/
 				const wb = this.form.getBounds();
 //				this.window.setBounds({x: 0, y: 30, width: wb.width, height: wb.height-30});
-				this.window.setBounds({x: 1, y: 30, width: wb.width-2, height: wb.height-31});
+///				this.window.setBounds({x: 1, y: 30, width: wb.width-2, height: wb.height-31});
+				this.window.setBounds({x: 0, y: 0, width: wb.width, height: wb.height});
 
 				if (!this.form.isMaximized() || !this.form.isFullScreen()) this.saveWinState();
 			});//*/
@@ -271,7 +274,7 @@ this.window.webContents.insertCSS(`
 //.navigation, aside, topbar, .openedChat { -webkit-user-select: none !important; user-select: none !important; }
 .navigation, aside, topbar { -webkit-user-select: none !important; user-select: none !important; }
 [class*="history"] { --max-content-width: 98% !important; }
-[class*="composer"] { min-width: 96% !important; max-width: 100% !important; align-self: center !important;}
+[class*="composer"] { min-width: 96% !important; max-width: 100% !important; align-self: center !important; }
 `).catch(err => console.error('CSS Injection failed:', err)); //*/
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -674,8 +677,8 @@ this.window.webContents.insertCSS(`
 //			this.window.setBounds({ x: 0, y: 0, width: ww[0], height: ww[1] });
 			const wb = this.form.getBounds();
 //			this.window.setBounds({x: 0, y: 30, width: wb.width, height: wb.height-30});
-			this.window.setBounds({x: 1, y: 30, width: wb.width-2, height: wb.height-31});
-
+///			this.window.setBounds({x: 1, y: 30, width: wb.width-2, height: wb.height-31});
+			this.window.setBounds({x: 0, y: 0, width: wb.width, height: wb.height});
 		});
 
 		this.window.webContents.on('leave-html-full-screen', () => {
@@ -684,7 +687,8 @@ this.window.webContents.insertCSS(`
 //			this.window.setBounds({ x: 0, y: 30, width: ww[0], height: ww[1]-30 });
 			const wb = this.form.getBounds();
 //			this.window.setBounds({x: 0, y: 30, width: wb.width, height: wb.height-30});
-			this.window.setBounds({x: 1, y: 30, width: wb.width-2, height: wb.height-31});
+///			this.window.setBounds({x: 1, y: 30, width: wb.width-2, height: wb.height-31});
+			this.window.setBounds({x: 0, y: 0, width: wb.width, height: wb.height});
 		});
 
 /*		this.form.on('resize', () => {
@@ -704,8 +708,8 @@ this.window.webContents.insertCSS(`
 		});
 		// */
 
-		// для contextIsolation = false (по сути, не требуется)
-/*		ipcMain.on('notification-click', () => {
+/*		// для contextIsolation = false (по сути, не требуется)
+		ipcMain.on('notification-click', () => {
 			setTimeout(() => {
 				if (!this.form.isVisible()) this.form.show();
 				if (this.form.isMinimized()) this.form.restore();
@@ -733,15 +737,6 @@ this.window.webContents.insertCSS(`
 			}, 200);
 		});//*/
 
-/*		this.window.webContents.session.on('notification-click', () => {
-			setTimeout(() => {
-				if (!this.form.isVisible()) this.form.show();
-				if (this.form.isMinimized()) this.form.restore();
-				this.form.show();
-				this.form.focus();		
-			}, 200);
-		});//*/
-
 		ipcMain.on("notify-click", () => {
 //		this.window.on("notify-click", () => {
 //			console.log("notify");
@@ -754,6 +749,14 @@ this.window.webContents.insertCSS(`
 //			}, 200);
 		});//*/
 
+/*		this.window.webContents.session.on('notification-click', () => {
+			setTimeout(() => {
+				if (!this.form.isVisible()) this.form.show();
+				if (this.form.isMinimized()) this.form.restore();
+				this.form.show();
+				this.form.focus();		
+			}, 200);
+		});//*/
 		////////////////////////////////////////
 		// сворачиваемся по Esc, если чат закрыт
 		ipcMain.on('hide-by-esc', (event) => {

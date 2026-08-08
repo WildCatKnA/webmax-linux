@@ -2,14 +2,19 @@
 <html>
 <head>
  <meta charset="UTF-8">
- <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+ <meta http-equiv="Content-Security-Policy" content="
+   default-src 'self';
+   script-src 'self' 'unsafe-inline';
+   style-src 'self' 'unsafe-inline';
+   img-src 'self' data:;
+ ">
 
 <script>
   // извлекаем тему из URL (параметр ?theme=...)
   const urlParams = new URLSearchParams(window.location.search);
   const theme = urlParams.get('theme') || 'light';
 
-  // устанавливаем атрибут на <html>, чтобы ваш CSS сработал
+  // устанавливаем атрибут на <html>, чтобы CSS сработал
   document.documentElement.setAttribute('data-color-scheme', theme);
 </script>
 

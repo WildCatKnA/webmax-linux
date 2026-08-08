@@ -175,19 +175,19 @@ img, video {
 
 let hideTimeout;
 
-// Функция для скрытия
+// скрытие кнопок
 function hideControls() {
     controls.classList.add('hidden');
 }
 
 // Функция для сброса таймера
 function resetTimer() {
-    controls.classList.remove('hidden'); // Показываем кнопки
-    clearTimeout(hideTimeout);           // Сбрасываем старый таймер
-    hideTimeout = setTimeout(hideControls, 3000); // Запускаем новый на 3 сек
+    controls.classList.remove('hidden'); // показываем кнопки
+    clearTimeout(hideTimeout);
+    hideTimeout = setTimeout(hideControls, 3000); // таймер на 3 сек
 }
 
-// Слушаем движение мыши над всем баром управления
+// слушаем движение мыши
 //titleBar.onmousemove = resetTimer;
 resetTimer();
 
