@@ -151,3 +151,11 @@ If there is no active chat, navigate the chat list (second segment of the window
 ### v1.0.4-18
 - It seems the notifications have been "fixed," though the first notification after launching the app might not appear;
 - Minor corrections.
+
+### v1.0.4-19
+- Fixed a crash of the main process occurring when an error arose while writing config.json. (thanks to [ring-rong](https://github.com/ring-rong));
+- Font size adjustment has been removed from the tray menu as it is no longer needed;
+- Added a "Clear cache" option to the tray menu.
+
+### v1.0.4-20
+- Fixed an issue with the viewer closing behavior when pressing the Esc key.
