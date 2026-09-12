@@ -253,7 +253,7 @@ Object.defineProperty(HTMLMediaElement.prototype, 'play', {
 
 ///////////////////////////////////////////
 
-///////////////////////////////////////////
+/*//////////////////////////////////////////
 // загружаем сохраненный масштаб шрифта или ставим по умолчанию
 let currentFontPercent = parseFloat(localStorage.getItem('max-font-scale') || '1');
 //let currentFontPercent = 1;
@@ -388,7 +388,7 @@ if (process.contextIsolated) {
 			}
 		);
 
-		/////////////////
+/*		/////////////////
 		// обрабатываем опции шрифта из tray-меню
 		ipcRenderer.on('change-font-size', (_event, action) => {
 			if (action === 'up') {
@@ -404,7 +404,7 @@ if (process.contextIsolated) {
 				localStorage.setItem('max-font-scale', '1');
 			}
 		});		
-		/////////////////
+		///////////////// */
 
 
 		contextBridge.exposeInMainWorld("electron", {
@@ -452,11 +452,11 @@ if (process.contextIsolated) {
 
 
 
-		////////////////////////////////////////////////////
+/*		////////////////////////////////////////////////////
 		// применяем настройки шрифтов при загрузке страницы
 		window.addEventListener('DOMContentLoaded', () => {
 			if (currentFontPercent != 1) applyMaxFontSmooth(currentFontPercent);
-		});//*/
+		});
 
 		// слушатель клавиш Ctrl + PgUp/PgDn/Home
 		window.addEventListener('keydown', (e) => {
@@ -547,11 +547,16 @@ if (process.contextIsolated) {
 				// мы "на пустом месте"? (чат/профиль закрыт)
 //				const addChats = document.querySelector('button.button--accent-primary[aria-label="Добавить чаты"]');
 				const emptyState = document.querySelector('[class*="emptyState"]');
+				const openedViewer = document.querySelector('[class*="mover"]');
 //				const emptyState = !!document.querySelector('.emptyState');
 //				const emptySvelte = document.querySelector('[class*="empty.Svelte"]');
 //				const addChats = !!document.querySelector('button[aria-label="Добавить чаты"]');
 //				if (emptyState && !addChats) window.electronAPI.hideWindow();
-				if (emptyState) {// && !emptySvelte) {
+				if (openedViewer) {
+					const closeButton = document.querySelector('button[aria-label="Закрыть"]') as HTMLElement | null;
+					if (closeButton) closeButton.click();
+				}
+				else if (emptyState) {// && !emptySvelte) {
 //					console.log('Esc нажат (3й сегмент - emptyState)');
 					ipcRenderer.send('hide-by-esc'); // сворачиваемся
 				}
